@@ -20,7 +20,7 @@ public class ProductController {
             @RequestParam Long categoryId,
             @RequestParam String name,
             @RequestParam String brand,
-            @RequestParam Integer price) {
+            @RequestParam Long price) {
 
         Product product = productService.createProduct(categoryId, name, brand, price);
         return ResponseEntity.ok(product);

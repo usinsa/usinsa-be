@@ -19,7 +19,7 @@ public class ProductService {
 
     // 상품 등록
     @Transactional
-    public Product createProduct(Long categoryId, String name, String brand, Integer price) {
+    public Product createProduct(Long categoryId, String name, String brand, Long price) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 

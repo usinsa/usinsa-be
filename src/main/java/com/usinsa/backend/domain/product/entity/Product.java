@@ -28,7 +28,7 @@ public class Product {
     private String brandName;
 
     @Column(name = "product_price", nullable = false)
-    private Integer price;
+    private Long price;
 
     @Column(name = "product_like")
     private Integer likeCount;
