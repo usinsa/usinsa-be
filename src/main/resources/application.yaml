@@ -2,6 +2,9 @@ spring:
   application:
     name: usinsa-be
 
+  config:
+    import: "optional:classpath:application-secret.yaml"
+
   profiles:
     group:
       local: local
