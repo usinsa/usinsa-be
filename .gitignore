@@ -38,3 +38,5 @@ out/
 
 # Secret 설정 파일
 src/main/resources/application-secret.yaml
+
+usinsa/docker-compose.yml
