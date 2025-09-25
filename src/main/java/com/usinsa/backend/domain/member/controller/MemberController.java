@@ -26,4 +26,10 @@ public class MemberController {
                 .created(URI.create("/api/v1/members/" + saved.getMemberId()))
                 .body(saved);
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<Member> login(@Valid @RequestBody Member member) {
+        Member loggedIn = memberService.login((member.getUsinaId()), member.getPassword());
+        return ResponseEntity.ok(loggedIn);
+    }
 }
