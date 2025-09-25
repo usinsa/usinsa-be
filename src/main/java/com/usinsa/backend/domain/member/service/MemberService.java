@@ -36,4 +36,16 @@ public class MemberService {
         return memberRepository.save(toSave);
     }
 
+    @Transactional
+    public Member login(String usinaId, String password) {
+        Member member = memberRepository.findByUsinaId(usinaId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유신아이디입니다."));
+
+        if (!member.getPassword().equals(password)) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        return member;
+    }
+
 }
