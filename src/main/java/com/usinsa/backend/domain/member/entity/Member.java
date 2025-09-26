@@ -2,6 +2,7 @@ package com.usinsa.backend.domain.member.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,6 +11,8 @@ import lombok.NoArgsConstructor;
 @Table(name="member")
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Member {
 
     @Id
@@ -43,20 +46,11 @@ public class Member {
     @Column(name = "profile_image")
     private String profileImage;
 
+    @Builder.Default
     @Column(name = "is_admin", nullable = false)
-    private Boolean isAdmin;
+    private Boolean isAdmin = false;
 
-    @Builder
-    private Member(String usinaId, String password, String name, String nickname, String email, String phone, String profileImage, Boolean isAdmin) {
-        this.usinaId = usinaId;
-        this.password = password;
-        this.name = name;
-        this.nickname = nickname;
-        this.email = email;
-        this.phone = phone;
-        this.profileImage = profileImage;
-        this.isAdmin = isAdmin;
-    }
+
 
     public void update(String name, String nickname, String email, String phone, String profileImage, Boolean isAdmin) {
         if (name != null) this.name = name;
