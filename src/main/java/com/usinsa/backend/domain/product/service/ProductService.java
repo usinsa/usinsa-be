@@ -3,6 +3,8 @@ package com.usinsa.backend.domain.product.service;
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.category.repository.CategoryRepository;
 import com.usinsa.backend.domain.product.entity.Product;
+import com.usinsa.backend.domain.product.entity.ProductOption;
+import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductOptionRepository optionRepository;
 
     /* ********************DTO 추가시 변경***************** */
 
@@ -40,5 +43,15 @@ public class ProductService {
     public Product getProductById(Long productId) {
         return productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+    }
+
+    // 상품 옵션 추가
+    @Transactional
+    public ProductOption addOption(Long productId, ProductOption option) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        product.addOption(option);
+        return optionRepository.save(option);
     }
 }
