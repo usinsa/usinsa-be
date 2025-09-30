@@ -1,3 +1,13 @@
+security:
+  jwt:
+    issuer: "usinsa-api"
+    access:
+      secret: ${JWT_ACCESS_SECRET}
+      expiration: 900s   # 15분
+      refresh:
+        secret: ${JWT_REFRESH_SECRET}
+        expiration: 14d    # 14일
+
 spring:
   application:
     name: usinsa-be
