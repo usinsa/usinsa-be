@@ -1,4 +1,5 @@
 package com.usinsa.backend.domain.auth.token;
 
-public class TokenType {
+public enum TokenType {
+    ACCESS, REFRESH
 }

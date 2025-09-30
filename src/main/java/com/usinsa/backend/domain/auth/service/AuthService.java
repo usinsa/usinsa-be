@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.auth.service;
 
+import com.usinsa.backend.domain.auth.dto.TokenResponse;
 import com.usinsa.backend.domain.auth.token.JwtProvider;
 import com.usinsa.backend.domain.auth.token.TokenProperties;
 import com.usinsa.backend.domain.auth.token.TokenStore;
@@ -28,13 +29,6 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final TokenProperties props;
 
-    /**
-     * 로그인: 자격 검증 → 토큰 2종 발급 → refresh 저장
-     * 예외:
-     *  - 400: 필수값 누락
-     *  - 401: 인증 실패(아이디/비번 불일치)
-     *  - 404: 회원 없음
-     */
     public TokenResponse login(String usinaIdOrEmail, String rawPassword) {
         final String idOrEmail = normalize(usinaIdOrEmail);
         if (isBlank(idOrEmail) || isBlank(rawPassword)) {
@@ -46,14 +40,12 @@ public class AuthService {
                     new UsernamePasswordAuthenticationToken(idOrEmail, rawPassword)
             );
         } catch (BadCredentialsException ex) {
-            // 인증 실패는 401로 통일 (보안상 구체 사유 노출 지양)
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 올바르지 않습니다.");
         } catch (Exception ex) {
-            // 기타 인증 오류도 401
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증에 실패했습니다.");
         }
 
-        // UDS 전략에 맞춰 식별: usinaId 우선 → email 보조
+        // usinaId 우선 → email 보조
         Member m = memberRepository.findByUsinaId(idOrEmail)
                 .orElseGet(() -> memberRepository.findByEmail(idOrEmail.toLowerCase())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 없음")));
@@ -69,13 +61,6 @@ public class AuthService {
         );
     }
 
-    /**
-     * 재발급: 저장된 refresh와 완전 일치해야 함 → 회전
-     * 예외:
-     *  - 400: 필수값 누락
-     *  - 401: refresh 불일치/없음
-     *  - 404: 회원 없음
-     */
     public TokenResponse refresh(String email, String refreshToken) {
         final String normalizedEmail = normalizeEmail(email);
         if (isBlank(normalizedEmail) || isBlank(refreshToken)) {
@@ -103,11 +88,6 @@ public class AuthService {
         );
     }
 
-    /**
-     * 로그아웃: access 남은 TTL만큼 블랙리스트, refresh 무효화
-     * 예외:
-     *  - 400: 토큰 파싱 불가/형식 오류
-     */
     public void logout(String accessToken, String email) {
         if (isBlank(accessToken) || isBlank(email)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "액세스 토큰과 이메일은 필수입니다.");
@@ -122,7 +102,7 @@ public class AuthService {
 
         long sec = Math.max(0, (exp.getTime() - System.currentTimeMillis()) / 1000);
         tokenStore.blacklistAccess(accessToken, Duration.ofSeconds(sec));
-        tokenStore.rotateRefresh(normalizeEmail(email), "", Duration.ofSeconds(1)); // invalidate
+        tokenStore.rotateRefresh(normalizeEmail(email), "", Duration.ofSeconds(1));
     }
 
     // ===== 내부 유틸 =====

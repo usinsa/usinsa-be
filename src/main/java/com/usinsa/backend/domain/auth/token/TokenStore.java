@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.auth.token;
 
+import java.time.Duration;
 import java.util.Optional;
 
 public interface TokenStore {
@@ -9,4 +10,3 @@ public interface TokenStore {
     void blacklistAccess(String accessToken, Duration ttl);
     boolean isBlacklisted(String accessToken);
 }
-
