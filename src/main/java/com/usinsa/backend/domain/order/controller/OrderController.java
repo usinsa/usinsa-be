@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.order.controller;
 
+import com.usinsa.backend.domain.order.dto.OrderDto;
 import com.usinsa.backend.domain.order.entity.Order;
 import com.usinsa.backend.domain.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -14,17 +15,18 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<Order> createOrder(@RequestBody Order order) {
-        return ResponseEntity.ok(orderService.createOrder(order));
+    public ResponseEntity<OrderDto.Response> createOrder(@RequestBody OrderDto.CreateReq request) {
+        return ResponseEntity.ok(orderService.createOrder(request));
     }
 
     @PutMapping("/{orderId}")
-    public ResponseEntity<Order> updateOrder(@PathVariable Long orderId, @RequestBody Order order) {
-        return ResponseEntity.ok(orderService.updateOrder(orderId, order));
+    public ResponseEntity<OrderDto.Response> updateOrder(@PathVariable Long orderId,
+                                                         @RequestBody OrderDto.UpdateReq request) {
+        return ResponseEntity.ok(orderService.updateOrder(orderId, request));
     }
 
     @PostMapping("/{orderId}/cancel")
-    public ResponseEntity<Order> cancelOrder(@PathVariable Long orderId) {
+    public ResponseEntity<OrderDto.Response> cancelOrder(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.cancelOrder(orderId));
     }
 }
