@@ -76,7 +76,7 @@ public class OrderedProductService {
 
     /* DTO 내부에서 변환 시키지 않는 이유
         기존: DTO 내부에 변환 코드 작성 -> 코드 단순화 but 의존도 상승
-        DTO가 엔티티를 모르는 상태를 유지해서 결합도 낮춤
+        신규: DTO가 엔티티를 모르는 상태를 유지해서 결합도 낮춤
      */
     private OrderedProductResDto toResDto(OrderedProduct orderedProduct) {
         return OrderedProductResDto.builder()
