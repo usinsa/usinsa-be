@@ -1,7 +1,6 @@
 package com.usinsa.backend.domain.order.controller;
 
 import com.usinsa.backend.domain.order.dto.OrderDto;
-import com.usinsa.backend.domain.order.entity.Order;
 import com.usinsa.backend.domain.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
