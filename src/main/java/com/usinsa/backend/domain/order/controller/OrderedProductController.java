@@ -1,5 +1,7 @@
 package com.usinsa.backend.domain.order.controller;
 
+import com.usinsa.backend.domain.order.dto.OrderedProductReqDto;
+import com.usinsa.backend.domain.order.dto.OrderedProductResDto;
 import com.usinsa.backend.domain.order.entity.OrderedProduct;
 import com.usinsa.backend.domain.order.service.OrderedProductService;
 import lombok.RequiredArgsConstructor;
@@ -17,31 +19,25 @@ public class OrderedProductController {
 
     // 등록
     @PostMapping
-    public ResponseEntity<OrderedProduct> create(
-            @RequestParam Long orderId,
-            @RequestParam Long productOptionId,
-            @RequestParam Integer quantity
-    ) {
-        return ResponseEntity.ok(
-                orderedProductService.create(orderId, productOptionId, quantity)
-        );
+    public ResponseEntity<OrderedProductResDto> create(@RequestBody OrderedProductReqDto reqDto) {
+        return ResponseEntity.ok(orderedProductService.create(reqDto));
     }
 
     // 단건 조회
     @GetMapping("/{id}")
-    public ResponseEntity<OrderedProduct> get(@PathVariable Long id) {
+    public ResponseEntity<OrderedProductResDto> get(@PathVariable Long id) {
         return ResponseEntity.ok(orderedProductService.get(id));
     }
 
     // 전체 조회
     @GetMapping
-    public ResponseEntity<List<OrderedProduct>> getAll() {
+    public ResponseEntity<List<OrderedProductResDto>> getAll() {
         return ResponseEntity.ok(orderedProductService.getAll());
     }
 
     // 수정 (수량 변경)
     @PutMapping("/{id}")
-    public ResponseEntity<OrderedProduct> updateQuantity(
+    public ResponseEntity<OrderedProductResDto> updateQuantity(
             @PathVariable Long id,
             @RequestParam Integer quantity
     ) {
