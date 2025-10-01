@@ -1,0 +1,37 @@
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:16
+    container_name: usinsa-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"              # 호스트:컨테이너
+    environment:
+      POSTGRES_DB: usinsa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Seoul
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d  # 초기 스키마/데이터 넣고 싶을 때
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d usinsa"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # 선택) pgAdmin UI
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: usinsa-pgadmin
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local
+      PGADMIN_DEFAULT_PASSWORD: admin
+
+volumes:
+  db_data:
