@@ -1,6 +1,7 @@
 package com.usinsa.backend.domain.product.controller;
 
 import com.usinsa.backend.domain.product.entity.Product;
+import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -29,5 +30,11 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProduct(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));
+    }
+
+    @PostMapping("/{productId}/options")
+    public ResponseEntity<ProductOption> addOption(@PathVariable Long productId,
+                                                   @RequestBody ProductOption option) {
+        return ResponseEntity.ok(productService.addOption(productId, option));
     }
 }
