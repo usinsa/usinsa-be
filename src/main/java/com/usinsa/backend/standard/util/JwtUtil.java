@@ -1,4 +1,4 @@
-package com.usinsa.backend.global.util;
+package com.usinsa.backend.standard.util;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
