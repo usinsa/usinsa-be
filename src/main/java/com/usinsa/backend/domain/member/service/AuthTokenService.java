@@ -1,7 +1,7 @@
 package com.usinsa.backend.domain.member.service;
 
 import com.usinsa.backend.domain.member.entity.Member;
-import com.usinsa.backend.standard.util.JwtUtil;
+import com.usinsa.backend.standard.util.Ut;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,7 +19,7 @@ public class AuthTokenService {
     private int expireSeconds;
 
     String genAcessToken(Member member) {
-        return JwtUtil.createToken(
+        return Ut.Jwt.createToken(
                 keyString,
                 expireSeconds,
                 Map.of(
