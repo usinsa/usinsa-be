@@ -10,7 +10,6 @@ import java.util.List;
 @Entity
 @Table(name = "`order`") // order -> 예약어
 @Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
