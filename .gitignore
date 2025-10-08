@@ -39,4 +39,6 @@ out/
 # Secret 설정 파일
 src/main/resources/application-secret.yml
 
-usinsa/docker-compose.yml
+usinsa-be/src/main/resources/application-secret.yml
+
+usinsa-be/docker-compose.yml
