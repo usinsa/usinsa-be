@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class MemberResDto {
-    private Long memberId;
+    private Long Id;
     private String usinaId;
     private String name;
     private String nickname;
@@ -20,7 +20,7 @@ public class MemberResDto {
 
     public static MemberResDto from(Member member) {
         return new MemberResDto(
-                member.getMemberId(),
+                member.getId(),
                 member.getUsinaId(),
                 member.getName(),
                 member.getNickname(),
