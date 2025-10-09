@@ -41,4 +41,4 @@ src/main/resources/application-secret.yml
 
 usinsa-be/src/main/resources/application-secret.yml
 
-usinsa-be/docker-compose.yml
+usinsa-be/docker-compose.ymlapplication-secret.yml
