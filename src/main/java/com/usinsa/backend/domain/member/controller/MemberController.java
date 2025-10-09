@@ -1,7 +1,7 @@
 package com.usinsa.backend.domain.member.controller;
 
 import com.usinsa.backend.domain.member.dto.MemberResDto;
-import com.usinsa.backend.domain.member.dto.SingupReqDto;
+import com.usinsa.backend.domain.member.dto.SignupReqDto;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.domain.member.service.MemberService;
@@ -22,8 +22,8 @@ public class MemberController {
     private final MemberRepository memberRepository;
 
     @PostMapping("/signup")
-    public ResponseEntity<MemberResDto> signup(@Valid @RequestBody SingupReqDto singupReqDto) {
-        MemberResDto created = memberService.singup(singupReqDto);
+    public ResponseEntity<MemberResDto> signup(@Valid @RequestBody SignupReqDto signupReqDto) {
+        MemberResDto created = memberService.singup(signupReqDto);
         return ResponseEntity.ok(created);
     }
 
