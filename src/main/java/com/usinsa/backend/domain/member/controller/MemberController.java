@@ -4,7 +4,7 @@ import com.usinsa.backend.domain.member.dto.LoginReqDto;
 import com.usinsa.backend.domain.member.dto.MemberResDto;
 import com.usinsa.backend.domain.member.dto.SignupReqDto;
 import com.usinsa.backend.domain.member.entity.Member;
-import com.usinsa.backend.domain.member.repository.MemberRepository;
+import com.usinsa.backend.domain.member.service.AuthTokenService;
 import com.usinsa.backend.domain.member.service.MemberService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,17 +20,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class MemberController {
 
     private final MemberService memberService;
-    private final MemberRepository memberRepository;
+    private final AuthTokenService authTokenService;
 
     @PostMapping("/signup")
     public ResponseEntity<MemberResDto> signup(@Valid @RequestBody SignupReqDto signupReqDto) {
-        MemberResDto created = memberService.singup(signupReqDto);
-        return ResponseEntity.ok(created);
+        MemberResDto memberResDto = memberService.singup(signupReqDto);
+        return ResponseEntity.ok(memberResDto);
     }
 
     @PostMapping("/login")
     public ResponseEntity<Member> login(@Valid @RequestBody LoginReqDto loginReqDto) {
-        Member loggedIn = memberService.login(loginReqDto);
-        return ResponseEntity.ok(loggedIn);
+        Member member = memberService.login(loginReqDto);
+        String accessToken = authTokenService.genAcessToken(member);
+        return ResponseEntity.ok(accessToken);
     }
 }
