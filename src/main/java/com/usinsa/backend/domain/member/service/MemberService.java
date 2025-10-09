@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.member.service;
 
+import com.usinsa.backend.domain.member.dto.LoginReqDto;
 import com.usinsa.backend.domain.member.dto.MemberResDto;
 import com.usinsa.backend.domain.member.dto.SignupReqDto;
 import com.usinsa.backend.domain.member.entity.Member;
@@ -43,11 +44,11 @@ public class MemberService {
 
 
     @Transactional
-    public Member login(String usinaId, String password) {
-        Member member = memberRepository.findByUsinaId(usinaId)
+    public Member login(LoginReqDto loginReqDto) {
+        Member member = memberRepository.findByUsinaId(loginReqDto.getUsinaId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유신아이디입니다."));
 
-        if (!member.getPassword().equals(password)) {
+        if (!member.getPassword().equals(loginReqDto.getPassword())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
 
