@@ -19,7 +19,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public MemberResDto singup(SignupReqDto signupReqDto) {
+    public MemberResDto signup(SignupReqDto signupReqDto) {
         if (memberRepository.existsByEmail(signupReqDto.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
