@@ -17,13 +17,13 @@ public class ProductController {
     // 상품 등록
     @PostMapping
     public ResponseEntity<ProductDto.Response> createProduct(@RequestBody ProductDto.CreateReq request) {
-        return ResponseEntity.ok(productService.createProduct(request));
+        return ResponseEntity.ok(productService.create(request));
     }
 
     // 상품 조회
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto.Response> getProduct(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getProductById(id));
+        return ResponseEntity.ok(productService.getById(id));
     }
 
     // 상품 옵션 추가

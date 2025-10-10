@@ -22,7 +22,7 @@ public class ProductService {
 
     // 상품 등록
     @Transactional
-    public ProductDto.Response createProduct(ProductDto.CreateReq request) {
+    public ProductDto.Response create(ProductDto.CreateReq request) {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
@@ -41,7 +41,7 @@ public class ProductService {
 
     // 상품 조회
     @Transactional(readOnly = true)
-    public ProductDto.Response getProductById(Long productId) {
+    public ProductDto.Response getById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
         return ProductDto.Response.fromEntity(product);
