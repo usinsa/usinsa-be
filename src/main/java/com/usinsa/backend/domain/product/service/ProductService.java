@@ -41,7 +41,7 @@ public class ProductService {
 
     // 상품 조회
     @Transactional(readOnly = true)
-    public ProductDto.Response getById(Long productId) {
+    public ProductDto.Response findById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
         return ProductDto.Response.fromEntity(product);

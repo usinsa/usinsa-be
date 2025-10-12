@@ -23,7 +23,7 @@ public class ProductController {
     // 상품 조회
     @GetMapping("/{id}")
     public ResponseEntity<ProductDto.Response> getProduct(@PathVariable Long id) {
-        return ResponseEntity.ok(productService.getById(id));
+        return ResponseEntity.ok(productService.findById(id));
     }
 
     // 상품 옵션 추가

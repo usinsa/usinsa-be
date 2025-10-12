@@ -26,13 +26,13 @@ public class Order {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_address", nullable = false)
     private String receiverAddress;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_name", nullable = false, length = 16)
     private String receiverName;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_phone", nullable = false, length = 20)
     private String receiverPhone;
 
     @Enumerated(EnumType.STRING)
