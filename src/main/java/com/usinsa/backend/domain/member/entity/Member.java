@@ -50,7 +50,16 @@ public class Member {
     @Column(name = "is_admin", nullable = false)
     private Boolean isAdmin = false;
 
+    /* deliveryAddresses와 다대일, Member 도메인 완료시 추가 */
 
+//    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<DeliveryAddress> deliveryAddresses = new ArrayList<>();
+//
+//    // 필요 시 편의 메서드 추가
+//    public void addDeliveryAddress(DeliveryAddress address) {
+//        deliveryAddresses.add(address);
+//        address.setMember(this);
+//    }
 
     public void update(String name, String nickname, String email, String phone, String profileImage, Boolean isAdmin) {
         if (name != null) this.name = name;
