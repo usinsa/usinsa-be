@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ProductService {
 
     private final ProductRepository productRepository;
@@ -21,7 +22,6 @@ public class ProductService {
     private final ProductOptionRepository optionRepository;
 
     // 상품 등록
-    @Transactional
     public ProductDto.Response create(ProductDto.CreateReq request) {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
@@ -36,7 +36,7 @@ public class ProductService {
                 .build();
 
         Product saved = productRepository.save(product);
-        return ProductDto.Response.fromEntity(saved);
+        return toProductResDto(saved);
     }
 
     // 상품 조회
@@ -44,11 +44,10 @@ public class ProductService {
     public ProductDto.Response findById(Long productId) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
-        return ProductDto.Response.fromEntity(product);
+        return toProductResDto(product);
     }
 
     // 상품 옵션 추가
-    @Transactional
     public ProductOptionDto.Response addOption(Long productId, ProductOptionDto.CreateReq request) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
@@ -60,6 +59,29 @@ public class ProductService {
                 .build();
 
         ProductOption saved = optionRepository.save(option);
-        return ProductOptionDto.Response.fromEntity(saved);
+        return toProductOptionResDto(saved);
+    }
+
+    // Product의 DTO 변환
+    private ProductDto.Response toProductResDto(Product product) {
+        return ProductDto.Response.builder()
+                .id(product.getId())
+                .categoryName(product.getCategory().getName())
+                .name(product.getName())
+                .brandName(product.getBrandName())
+                .price(product.getPrice())
+                .likeCount(product.getLikeCount())
+                .clickCount(product.getClickCount())
+                .build();
+    }
+
+    // ProductOption의 DTO 변환
+    private ProductOptionDto.Response toProductOptionResDto(ProductOption option) {
+        return ProductOptionDto.Response.builder()
+                .id(option.getId())
+                .optionName(option.getOptionName())
+                .stock(option.getStock())
+                .productId(option.getProduct().getId())
+                .build();
     }
 }

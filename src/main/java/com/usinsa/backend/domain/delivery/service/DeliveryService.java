@@ -15,12 +15,12 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
     private final OrderRepository orderRepository;
 
-    @Transactional
     public DeliveryDto.Response create(DeliveryDto.CreateReq request) {
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
@@ -32,22 +32,21 @@ public class DeliveryService {
                 .build();
 
         Delivery saved = deliveryRepository.save(delivery);
-        return DeliveryDto.Response.fromEntity(saved);
+        return toResDto(saved);
     }
 
-    public DeliveryDto.Response getById(Long deliveryId) {
+    public DeliveryDto.Response findById(Long deliveryId) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
-        return DeliveryDto.Response.fromEntity(delivery);
+        return toResDto(delivery);
     }
 
-    public List<DeliveryDto.Response> getAll() {
+    public List<DeliveryDto.Response> findAll() {
         return deliveryRepository.findAll().stream()
-                .map(DeliveryDto.Response::fromEntity)
+                .map(this::toResDto)
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public DeliveryDto.Response update(Long deliveryId, DeliveryDto.CreateReq request) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
@@ -58,13 +57,21 @@ public class DeliveryService {
         if (request.getDeliveryStatus() != null)
             delivery.updateDeliveryStatus(request.getDeliveryStatus());
 
-        return DeliveryDto.Response.fromEntity(delivery);
+        return toResDto(delivery);
     }
 
-    @Transactional
     public void delete(Long deliveryId) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
         deliveryRepository.delete(delivery);
+    }
+
+    private DeliveryDto.Response toResDto(Delivery Delivery) {
+        return DeliveryDto.Response.builder()
+                .id(Delivery.getId())
+                .orderId(Delivery.getOrder().getId())
+                .trackingNumber(Delivery.getTrackingNumber())
+                .deliveryStatus(Delivery.getDeliveryStatus())
+                .build();
     }
 }

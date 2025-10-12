@@ -53,21 +53,11 @@ public class DeliveryAddressDto {
     @Getter
     @AllArgsConstructor
     @Builder
-    public static class Res {
+    public static class Response {
         private Long deliveryAddressId;
         private Long memberId;
         private String receiverName;
         private String receiverPhone;
         private String receiverAddress;
-
-        public static Res fromEntity(DeliveryAddress deliveryAddress) {
-            return Res.builder()
-                    .deliveryAddressId(deliveryAddress.getId())
-                    .memberId(deliveryAddress.getMember().getMemberId())
-                    .receiverName(deliveryAddress.getReceiverName())
-                    .receiverPhone(deliveryAddress.getReceiverPhone())
-                    .receiverAddress(deliveryAddress.getReceiverAddress())
-                    .build();
-        }
     }
 }

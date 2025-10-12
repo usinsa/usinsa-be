@@ -7,8 +7,6 @@ import lombok.*;
 public class OrderDto {
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class CreateReq {
@@ -19,8 +17,6 @@ public class OrderDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class UpdateReq {
@@ -30,8 +26,6 @@ public class OrderDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {

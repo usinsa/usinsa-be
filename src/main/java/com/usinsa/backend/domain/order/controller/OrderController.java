@@ -15,17 +15,17 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderDto.Response> createOrder(@RequestBody OrderDto.CreateReq request) {
-        return ResponseEntity.ok(orderService.createOrder(request));
+        return ResponseEntity.ok(orderService.create(request));
     }
 
     @PutMapping("/{orderId}")
     public ResponseEntity<OrderDto.Response> updateOrder(@PathVariable Long orderId,
                                                          @RequestBody OrderDto.UpdateReq request) {
-        return ResponseEntity.ok(orderService.updateOrder(orderId, request));
+        return ResponseEntity.ok(orderService.update(orderId, request));
     }
 
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<OrderDto.Response> cancelOrder(@PathVariable Long orderId) {
-        return ResponseEntity.ok(orderService.cancelOrder(orderId));
+        return ResponseEntity.ok(orderService.cancel(orderId));
     }
 }

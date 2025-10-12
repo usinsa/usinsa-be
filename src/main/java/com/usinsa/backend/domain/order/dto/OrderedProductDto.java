@@ -5,8 +5,6 @@ import lombok.*;
 public class OrderedProductDto {
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Request {
@@ -16,8 +14,6 @@ public class OrderedProductDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {

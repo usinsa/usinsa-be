@@ -17,22 +17,22 @@ public class DeliveryAddressController {
     private final DeliveryAddressService deliveryAddressService;
 
     @PostMapping
-    public ResponseEntity<DeliveryAddressDto.Res> createDeliveryAddress(@RequestBody @Valid DeliveryAddressDto.CreateReq request) {
+    public ResponseEntity<DeliveryAddressDto.Response> createDeliveryAddress(@RequestBody @Valid DeliveryAddressDto.CreateReq request) {
         return ResponseEntity.ok(deliveryAddressService.create(request));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<DeliveryAddressDto.Res> getDeliveryAddress(@PathVariable Long id) {
+    public ResponseEntity<DeliveryAddressDto.Response> getDeliveryAddress(@PathVariable Long id) {
         return ResponseEntity.ok(deliveryAddressService.findById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<DeliveryAddressDto.Res>> getAllDeliveryAddress() {
+    public ResponseEntity<List<DeliveryAddressDto.Response>> getAllDeliveryAddress() {
         return ResponseEntity.ok(deliveryAddressService.findAll());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<DeliveryAddressDto.Res> updateDeliveryAddress(@PathVariable Long id,
+    public ResponseEntity<DeliveryAddressDto.Response> updateDeliveryAddress(@PathVariable Long id,
                                                          @RequestBody @Valid DeliveryAddressDto.UpdateReq request) {
         return ResponseEntity.ok(deliveryAddressService.update(id, request));
     }

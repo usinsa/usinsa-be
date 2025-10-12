@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -19,8 +20,7 @@ public class OrderService {
 
 
     // 주문 생성
-    @Transactional
-    public OrderDto.Response createOrder(OrderDto.CreateReq request) {
+    public OrderDto.Response create(OrderDto.CreateReq request) {
         Member member = memberRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Member not found"));
 
@@ -37,8 +37,7 @@ public class OrderService {
     }
 
     // 주문 수정
-    @Transactional
-    public OrderDto.Response updateOrder(Long orderId, OrderDto.UpdateReq request) {
+    public OrderDto.Response update(Long orderId, OrderDto.UpdateReq request) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
@@ -50,8 +49,7 @@ public class OrderService {
     }
 
     // 주문 취소
-    @Transactional
-    public OrderDto.Response cancelOrder(Long orderId) {
+    public OrderDto.Response cancel(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 

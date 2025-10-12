@@ -17,20 +17,20 @@ public class OrderedProductController {
 
     // 등록
     @PostMapping
-    public ResponseEntity<OrderedProductDto.Response> create(@RequestBody OrderedProductDto.Request reqDto) {
+    public ResponseEntity<OrderedProductDto.Response> createOrderedProduct(@RequestBody OrderedProductDto.Request reqDto) {
         return ResponseEntity.ok(orderedProductService.create(reqDto));
     }
 
     // 단건 조회
     @GetMapping("/{id}")
-    public ResponseEntity<OrderedProductDto.Response> get(@PathVariable Long id) {
-        return ResponseEntity.ok(orderedProductService.get(id));
+    public ResponseEntity<OrderedProductDto.Response> getOrderedProduct(@PathVariable Long id) {
+        return ResponseEntity.ok(orderedProductService.findById(id));
     }
 
     // 전체 조회
     @GetMapping
-    public ResponseEntity<List<OrderedProductDto.Response>> getAll() {
-        return ResponseEntity.ok(orderedProductService.getAll());
+    public ResponseEntity<List<OrderedProductDto.Response>> getAllOrderedProduct() {
+        return ResponseEntity.ok(orderedProductService.findAll());
     }
 
     // 수정 (수량 변경)
@@ -42,7 +42,7 @@ public class OrderedProductController {
 
     // 삭제
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteOrderedProduct(@PathVariable Long id) {
         orderedProductService.delete(id);
         return ResponseEntity.noContent().build();
     }

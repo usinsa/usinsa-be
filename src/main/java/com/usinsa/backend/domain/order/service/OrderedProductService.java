@@ -37,23 +37,23 @@ public class OrderedProductService {
                 .quantity(reqDto.getQuantity())
                 .build();
 
-        return toResponseDto(orderedProductRepository.save(orderedProduct));
+        return toResDto(orderedProductRepository.save(orderedProduct));
     }
 
     // 단건 조회
     @Transactional(readOnly = true)
-    public OrderedProductDto.Response get(Long id) {
+    public OrderedProductDto.Response findById(Long id) {
         return orderedProductRepository.findById(id)
-                .map(this::toResponseDto)
+                .map(this::toResDto)
                 .orElseThrow(() -> new IllegalArgumentException("Ordered product not found"));
     }
 
     // 전체 조회
     @Transactional(readOnly = true)
-    public List<OrderedProductDto.Response> getAll() {
+    public List<OrderedProductDto.Response> findAll() {
         return orderedProductRepository.findAll()
                 .stream()
-                .map(this::toResponseDto)
+                .map(this::toResDto)
                 .collect(Collectors.toList());
     }
 
@@ -64,7 +64,7 @@ public class OrderedProductService {
 
         orderedProduct.setQuantity(newQuantity);
 
-        return toResponseDto(orderedProduct);
+        return toResDto(orderedProduct);
     }
 
     // 삭제
@@ -78,7 +78,7 @@ public class OrderedProductService {
         기존: DTO 내부에 변환 코드 작성 -> 코드 단순화 but 의존도 상승
         신규: DTO가 엔티티를 모르는 상태를 유지해서 결합도 낮춤
      */
-    private OrderedProductDto.Response toResponseDto(OrderedProduct orderedProduct) {
+    private OrderedProductDto.Response toResDto(OrderedProduct orderedProduct) {
         return OrderedProductDto.Response.builder()
                 .id(orderedProduct.getId())
                 .orderId(orderedProduct.getOrder().getId())
