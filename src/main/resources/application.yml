@@ -3,7 +3,7 @@ spring:
     name: usinsa-be
 
   config:
-    import: "optional:classpath:application-secret.yaml"
+    import: optional:classpath:application-secret.yml
 
   profiles:
     group:
