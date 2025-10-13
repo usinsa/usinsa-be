@@ -1,6 +1,7 @@
 package com.usinsa.backend.domain.member.controller;
 
 import com.usinsa.backend.domain.member.dto.LoginReqDto;
+import com.usinsa.backend.domain.member.dto.LoginResDto;
 import com.usinsa.backend.domain.member.dto.MemberResDto;
 import com.usinsa.backend.domain.member.dto.SignupReqDto;
 import com.usinsa.backend.domain.member.entity.Member;
@@ -29,9 +30,18 @@ public class MemberController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Member> login(@Valid @RequestBody LoginReqDto loginReqDto) {
+    public ResponseEntity<LoginResDto> login(@Valid @RequestBody LoginReqDto loginReqDto) {
         Member member = memberService.login(loginReqDto);
         String accessToken = authTokenService.genAcessToken(member);
-        return ResponseEntity.ok(accessToken);
+
+        LoginResDto loginResDto = LoginResDto.builder()
+                .memberId(member.getId())
+                .email(member.getEmail())
+                .name(member.getName())
+                .nickname(member.getNickname())
+                .accessToken(accessToken)
+                .build();
+
+        return ResponseEntity.ok(loginResDto);
     }
 }
