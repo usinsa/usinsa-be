@@ -8,6 +8,7 @@ public class OrderDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private Long memberId;
@@ -18,6 +19,7 @@ public class OrderDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class UpdateReq {
         private String receiverAddress;

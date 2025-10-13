@@ -7,6 +7,7 @@ public class DeliveryDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private Long orderId;           // 연관된 주문 ID

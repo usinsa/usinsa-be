@@ -7,6 +7,7 @@ public class ProductOptionDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private String optionName;

@@ -6,6 +6,7 @@ public class OrderedProductDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class Request {
         private Long orderId;

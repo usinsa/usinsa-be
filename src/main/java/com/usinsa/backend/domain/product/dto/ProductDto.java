@@ -6,6 +6,7 @@ public class ProductDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private Long categoryId;

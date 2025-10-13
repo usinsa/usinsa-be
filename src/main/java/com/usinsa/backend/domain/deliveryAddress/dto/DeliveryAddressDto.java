@@ -7,11 +7,13 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 public class DeliveryAddressDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         @NotNull(message = "회원 ID는 필수 입력 값입니다.")
@@ -38,6 +40,7 @@ public class DeliveryAddressDto {
 
     @Getter
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class UpdateReq {
         @NotBlank(message = "수령인 이름은 필수 입력 값입니다.")
