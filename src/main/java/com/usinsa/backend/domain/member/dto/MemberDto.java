@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.member.dto;
 
+import com.usinsa.backend.domain.member.entity.Member;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,5 +48,18 @@ public class MemberDto {
         private String phone;
         private String profileImage;
         private Boolean isAdmin;
+
+        public static Resopnse fromEntity(Member member) {
+            return Resopnse.builder()
+                    .Id(member.getId())
+                    .usinaId(member.getUsinaId())
+                    .name(member.getName())
+                    .nickname(member.getNickname())
+                    .email(member.getEmail())
+                    .phone(member.getPhone())
+                    .profileImage(member.getProfileImage())
+                    .isAdmin(member.getIsAdmin())
+                    .build();
+        }
     }
 }

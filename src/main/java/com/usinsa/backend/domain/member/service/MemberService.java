@@ -1,8 +1,7 @@
 package com.usinsa.backend.domain.member.service;
 
-import com.usinsa.backend.domain.member.dto.LoginReqDto;
-import com.usinsa.backend.domain.member.dto.MemberResDto;
-import com.usinsa.backend.domain.member.dto.SignupReqDto;
+import com.usinsa.backend.domain.member.dto.AuthDto;
+import com.usinsa.backend.domain.member.dto.MemberDto;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,7 @@ public class MemberService {
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public MemberResDto signup(SignupReqDto signupReqDto) {
+    public MemberDto.Resopnse signup(AuthDto.SignupReq signupReqDto) {
         if (memberRepository.existsByEmail(signupReqDto.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
@@ -40,7 +39,7 @@ public class MemberService {
                         .profileImage(signupReqDto.getProfileImage())
                         .build() // isAdmin은 기본값 false
         );
-        return MemberResDto.from(toSave);
+        return MemberDto.Resopnse.fromEntity(toSave);
     }
 
     /*
@@ -49,7 +48,7 @@ public class MemberService {
      * equals를 사용해 비밀번호 일치 여부를 확인하면 평문이랑 해시를 비교하는 상황이 발생함.
      */
     @Transactional(readOnly = true)
-    public Member login(LoginReqDto loginReqDto) {
+    public MemberDto.Resopnse login(AuthDto.LoginReq loginReqDto) {
         Member member = memberRepository.findByUsinaId(loginReqDto.getUsinaId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유신아이디입니다."));
 
@@ -57,7 +56,7 @@ public class MemberService {
             throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
         }
 
-        return member;
+        return MemberDto.Resopnse.fromEntity(member);
     }
 
 }
