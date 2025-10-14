@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# Secret 설정 파일
+src/main/resources/application-secret.yml
+
+usinsa-be/src/main/resources/application-secret.yml
+
+usinsa-be/docker-compose.ymlapplication-secret.yml
