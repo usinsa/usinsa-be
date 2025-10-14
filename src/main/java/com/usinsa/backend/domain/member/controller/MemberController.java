@@ -1,5 +1,7 @@
 package com.usinsa.backend.domain.member.controller;
 
+import com.usinsa.backend.domain.member.dto.AuthDto;
+import com.usinsa.backend.domain.member.dto.MemberDto;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.service.AuthTokenService;
 import com.usinsa.backend.domain.member.service.MemberService;
@@ -20,24 +22,13 @@ public class MemberController {
     private final AuthTokenService authTokenService;
 
     @PostMapping("/signup")
-    public ResponseEntity<MemberResDto> signup(@Valid @RequestBody SignupReqDto signupReqDto) {
-        MemberResDto memberResDto = memberService.signup(signupReqDto);
+    public ResponseEntity<MemberDto.Response> signup(@Valid @RequestBody AuthDto.SignupReq signupReqDto) {
+        MemberDto.Response memberResDto = memberService.signup(signupReqDto);
         return ResponseEntity.ok(memberResDto);
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResDto> login(@Valid @RequestBody LoginReqDto loginReqDto) {
-        Member member = memberService.login(loginReqDto);
-        String accessToken = authTokenService.genAcessToken(member);
-
-        LoginResDto loginResDto = LoginResDto.builder()
-                .memberId(member.getId())
-                .email(member.getEmail())
-                .name(member.getName())
-                .nickname(member.getNickname())
-                .accessToken(accessToken)
-                .build();
-
-        return ResponseEntity.ok(loginResDto);
+    public ResponseEntity<AuthDto.LoginRes> login(@Valid @RequestBody AuthDto.LoginReq loginReqDto) {
+        return ResponseEntity.ok(memberService.login(loginReqDto));
     }
 }

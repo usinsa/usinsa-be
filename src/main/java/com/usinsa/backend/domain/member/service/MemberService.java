@@ -16,9 +16,10 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthTokenService authTokenService;
 
     @Transactional
-    public MemberDto.Resopnse signup(AuthDto.SignupReq signupReqDto) {
+    public MemberDto.Response signup(AuthDto.SignupReq signupReqDto) {
         if (memberRepository.existsByEmail(signupReqDto.getEmail())) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
@@ -39,7 +40,7 @@ public class MemberService {
                         .profileImage(signupReqDto.getProfileImage())
                         .build() // isAdmin은 기본값 false
         );
-        return MemberDto.Resopnse.fromEntity(toSave);
+        return MemberDto.Response.fromEntity(toSave);
     }
 
     /*
@@ -48,7 +49,7 @@ public class MemberService {
      * equals를 사용해 비밀번호 일치 여부를 확인하면 평문이랑 해시를 비교하는 상황이 발생함.
      */
     @Transactional(readOnly = true)
-    public MemberDto.Resopnse login(AuthDto.LoginReq loginReqDto) {
+    public AuthDto.LoginRes login(AuthDto.LoginReq loginReqDto) {
         Member member = memberRepository.findByUsinaId(loginReqDto.getUsinaId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유신아이디입니다."));
 
@@ -56,7 +57,15 @@ public class MemberService {
             throw new BadCredentialsException("비밀번호가 일치하지 않습니다.");
         }
 
-        return MemberDto.Resopnse.fromEntity(member);
+        String accessToken = authTokenService.genAccessToken(member);
+
+        return AuthDto.LoginRes.builder()
+                .memberId(member.getId())
+                .email(member.getEmail())
+                .name(member.getName())
+                .nickname(member.getNickname())
+                .accessToken(accessToken)
+                .build();
     }
 
 }

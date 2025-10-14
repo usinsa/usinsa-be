@@ -21,7 +21,7 @@ public class AuthTokenService {
     @Value("${custom.jwt.expire-seconds}")
     private int expireSeconds;
 
-    public String genAcessToken(Member member) {
+    public String genAccessToken(Member member) {
 
         // secretKey를 -> Key 객체로 생성
         Key secretKey = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));

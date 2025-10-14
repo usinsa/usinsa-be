@@ -39,7 +39,7 @@ public class MemberDto {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class Resopnse {
+    public static class Response {
         private Long Id;
         private String usinaId;
         private String name;
@@ -49,8 +49,8 @@ public class MemberDto {
         private String profileImage;
         private Boolean isAdmin;
 
-        public static Resopnse fromEntity(Member member) {
-            return Resopnse.builder()
+        public static Response fromEntity(Member member) {
+            return Response.builder()
                     .Id(member.getId())
                     .usinaId(member.getUsinaId())
                     .name(member.getName())
