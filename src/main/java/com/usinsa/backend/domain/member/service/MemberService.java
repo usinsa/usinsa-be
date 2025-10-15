@@ -59,13 +59,15 @@ public class MemberService {
 
         String accessToken = authTokenService.genAccessToken(member);
 
-        return AuthDto.LoginRes.builder()
+        AuthDto.LoginRes loginRes = AuthDto.LoginRes.builder()
                 .memberId(member.getId())
                 .email(member.getEmail())
                 .name(member.getName())
                 .nickname(member.getNickname())
                 .accessToken(accessToken)
                 .build();
+
+        return loginRes;
     }
 
 }
