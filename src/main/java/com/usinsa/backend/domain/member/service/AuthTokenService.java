@@ -32,8 +32,14 @@ public class AuthTokenService {
                 Map.of(
                         "id", member.getId(),
                         "usinaId", member.getUsinaId(),
+                        "email", member.getEmail(),
                         "isAdmin", member.getIsAdmin()
                 )
         );
+    }
+
+    public Map<String, Object> getPayload(String token) {
+        if (!Ut.Jwt.isValidToken(keyString, token)) return null;
+        return Ut.Jwt.getPayload(keyString, token);
     }
 }
