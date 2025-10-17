@@ -31,21 +31,18 @@ public class OrderedProductService {
         ProductOption option = productOptionRepository.findById(reqDto.getProductOptionId())
                 .orElseThrow(() -> new IllegalArgumentException("Product option not found"));
 
-        OrderedProduct orderedProduct = OrderedProduct.builder()
-                .order(order)
-                .productOption(option)
-                .quantity(reqDto.getQuantity())
-                .build();
+        OrderedProduct orderedProduct = toEntity(reqDto, order, option);
+        OrderedProduct saved = orderedProductRepository.save(orderedProduct);
 
-        return toResDto(orderedProductRepository.save(orderedProduct));
+        return toResDto(saved);
     }
 
     // 단건 조회
     @Transactional(readOnly = true)
     public OrderedProductDto.Response findById(Long id) {
-        return orderedProductRepository.findById(id)
-                .map(this::toResDto)
+        OrderedProduct orderedProduct = orderedProductRepository.findWithOrderAndProductOptionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordered product not found"));
+        return toResDto(orderedProduct);
     }
 
     // 전체 조회
@@ -59,11 +56,10 @@ public class OrderedProductService {
 
     // 수정 (수량 변경)
     public OrderedProductDto.Response updateQuantity(Long id, Integer newQuantity) {
-        OrderedProduct orderedProduct = orderedProductRepository.findById(id)
+        OrderedProduct orderedProduct = orderedProductRepository.findWithOrderAndProductOptionById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordered product not found"));
 
         orderedProduct.setQuantity(newQuantity);
-
         return toResDto(orderedProduct);
     }
 
@@ -72,6 +68,14 @@ public class OrderedProductService {
         OrderedProduct orderedProduct = orderedProductRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordered product not found"));
         orderedProductRepository.delete(orderedProduct);
+    }
+
+    private OrderedProduct toEntity(OrderedProductDto.Request reqDto, Order order, ProductOption option) {
+        return OrderedProduct.builder()
+                .order(order)
+                .productOption(option)
+                .quantity(reqDto.getQuantity())
+                .build();
     }
 
     /* DTO 내부에서 변환 시키지 않는 이유

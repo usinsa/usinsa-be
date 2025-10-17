@@ -24,13 +24,14 @@ public class DeliveryAddressService {
         Member member = memberRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
 
-        DeliveryAddress deliveryAddress = deliveryAddressRepository.save(request.toEntity(member));
-        return toResDto(deliveryAddress);
+        DeliveryAddress deliveryAddress = toEntity(request, member);
+        DeliveryAddress saved = deliveryAddressRepository.save(deliveryAddress);
+        return toResDto(saved);
     }
 
     @Transactional(readOnly = true)
     public DeliveryAddressDto.Response findById(Long id) {
-        DeliveryAddress deliveryAddress = deliveryAddressRepository.findById(id)
+        DeliveryAddress deliveryAddress = deliveryAddressRepository.findWithMemberById(id)
                 .orElseThrow(() -> new EntityNotFoundException("배송지가 존재하지 않습니다."));
         return toResDto(deliveryAddress);
     }
@@ -57,10 +58,19 @@ public class DeliveryAddressService {
         deliveryAddressRepository.deleteById(id);
     }
 
+    private DeliveryAddress toEntity(DeliveryAddressDto.CreateReq request, Member member) {
+        return DeliveryAddress.builder()
+                .member(member)
+                .receiverName(request.getReceiverName())
+                .receiverPhone(request.getReceiverPhone())
+                .receiverAddress(request.getReceiverAddress())
+                .build();
+    }
+
     private DeliveryAddressDto.Response toResDto(DeliveryAddress deliveryAddress) {
         return DeliveryAddressDto.Response.builder()
                 .deliveryAddressId(deliveryAddress.getId())
-                .memberId(deliveryAddress.getMember().getMemberId())
+                .memberId(deliveryAddress.getMember().getId())
                 .receiverName(deliveryAddress.getReceiverName())
                 .receiverPhone(deliveryAddress.getReceiverPhone())
                 .receiverAddress(deliveryAddress.getReceiverAddress())

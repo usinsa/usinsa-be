@@ -25,22 +25,19 @@ public class DeliveryService {
         Order order = orderRepository.findById(request.getOrderId())
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
 
-        Delivery delivery = Delivery.builder()
-                .order(order)
-                .trackingNumber(request.getTrackingNumber())
-                .deliveryStatus(request.getDeliveryStatus() != null ? request.getDeliveryStatus() : DeliveryStatus.READY)
-                .build();
-
+        Delivery delivery = toEntity(request, order);
         Delivery saved = deliveryRepository.save(delivery);
         return toResDto(saved);
     }
 
+    @Transactional(readOnly = true)
     public DeliveryDto.Response findById(Long deliveryId) {
-        Delivery delivery = deliveryRepository.findById(deliveryId)
+        Delivery delivery = deliveryRepository.findWithOrderById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
         return toResDto(delivery);
     }
 
+    @Transactional(readOnly = true)
     public List<DeliveryDto.Response> findAll() {
         return deliveryRepository.findAll().stream()
                 .map(this::toResDto)
@@ -64,6 +61,14 @@ public class DeliveryService {
         Delivery delivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
         deliveryRepository.delete(delivery);
+    }
+
+    private Delivery toEntity(DeliveryDto.CreateReq request, Order order) {
+        return Delivery.builder()
+                .order(order)
+                .trackingNumber(request.getTrackingNumber())
+                .deliveryStatus(request.getDeliveryStatus() != null ? request.getDeliveryStatus() : DeliveryStatus.READY)
+                .build();
     }
 
     private DeliveryDto.Response toResDto(Delivery Delivery) {

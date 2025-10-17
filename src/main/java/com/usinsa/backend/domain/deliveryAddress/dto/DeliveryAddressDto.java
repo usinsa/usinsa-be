@@ -28,14 +28,6 @@ public class DeliveryAddressDto {
         @NotBlank(message = "수령인 주소는 필수 입력 값입니다.")
         private String receiverAddress;
 
-        public DeliveryAddress toEntity(Member member) {
-            return DeliveryAddress.builder()
-                    .member(member)
-                    .receiverName(receiverName)
-                    .receiverPhone(receiverPhone)
-                    .receiverAddress(receiverAddress)
-                    .build();
-        }
     }
 
     @Getter

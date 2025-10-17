@@ -19,7 +19,6 @@ public class Delivery {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    // cascade랑 오펜 리무버 옵션 넣어야할까
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 

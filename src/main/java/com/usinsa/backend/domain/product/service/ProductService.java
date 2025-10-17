@@ -12,6 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,25 +29,26 @@ public class ProductService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
 
-        Product product = Product.builder()
-                .name(request.getName())
-                .brandName(request.getBrand())
-                .price(request.getPrice())
-                .category(category)
-                .likeCount(0)
-                .clickCount(0)
-                .build();
-
+        Product product = toEntity(request, category);
         Product saved = productRepository.save(product);
+
         return toProductResDto(saved);
     }
 
-    // 상품 조회
+    // 상품 단건 조회
     @Transactional(readOnly = true)
     public ProductDto.Response findById(Long productId) {
-        Product product = productRepository.findById(productId)
+        Product product = productRepository.findWithCategoryAndOptionsById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
         return toProductResDto(product);
+    }
+
+    // 상품 전체 조회
+    @Transactional(readOnly = true)
+    public List<ProductDto.Response> findAll() {
+        return productRepository.findAll().stream()
+                .map(this::toProductResDto)
+                .collect(Collectors.toList());
     }
 
     // 상품 옵션 추가
@@ -52,14 +56,29 @@ public class ProductService {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
-        ProductOption option = ProductOption.builder()
+        ProductOption option = toEntity(request, product);
+        ProductOption saved = optionRepository.save(option);
+
+        return toProductOptionResDto(saved);
+    }
+
+    private Product toEntity(ProductDto.CreateReq request, Category category) {
+        return Product.builder()
+                .name(request.getName())
+                .brandName(request.getBrand())
+                .price(request.getPrice())
+                .category(category)
+                .likeCount(0)
+                .clickCount(0)
+                .build();
+    }
+
+    private ProductOption toEntity(ProductOptionDto.CreateReq request, Product product) {
+        return ProductOption.builder()
                 .optionName(request.getOptionName())
                 .stock(request.getStock())
                 .product(product)
                 .build();
-
-        ProductOption saved = optionRepository.save(option);
-        return toProductOptionResDto(saved);
     }
 
     // Product의 DTO 변환
