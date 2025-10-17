@@ -32,7 +32,7 @@ public class Category {
     @Column(name = "category_name", nullable = false, length = 100)
     private String name;
 
-    // 연관관계 설정
+    
     public void addChild(Category child) {
         this.children.add(child);
         child.parent = this;

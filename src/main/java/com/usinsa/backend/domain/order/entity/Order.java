@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.order.entity;
 
+import com.usinsa.backend.domain.delivery.entity.Delivery;
 import com.usinsa.backend.domain.member.entity.Member;
 import jakarta.persistence.*;
 import lombok.*;
@@ -25,13 +26,13 @@ public class Order {
     @JoinColumn(name = "member_id", nullable = false)
     private Member member;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_address", nullable = false)
     private String receiverAddress;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_name", nullable = false, length = 16)
     private String receiverName;
 
-    @Column(nullable = false)
+    @Column(name = "receiver_phone", nullable = false, length = 20)
     private String receiverPhone;
 
     @Enumerated(EnumType.STRING)
@@ -40,4 +41,30 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderedProduct> orderedProducts = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Delivery delivery;
+
+    public void setDelivery(Delivery delivery) {
+        this.delivery = delivery;
+        if (delivery.getOrder() != this) {
+            delivery.setOrder(this);
+        }
+    }
+
+    public void setReceiverAddress(String receiverAddress) {
+        this.receiverAddress = receiverAddress;
+    }
+
+    public void setReceiverName(String receiverName) {
+        this.receiverName = receiverName;
+    }
+
+    public void setReceiverPhone(String receiverPhone) {
+        this.receiverPhone = receiverPhone;
+    }
+
+    public void setStatus(OrderStatus orderStatus) {
+        this.status = orderStatus;
+    }
 }

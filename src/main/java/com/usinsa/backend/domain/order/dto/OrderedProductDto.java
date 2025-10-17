@@ -5,9 +5,8 @@ import lombok.*;
 public class OrderedProductDto {
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class Request {
         private Long orderId;
@@ -16,8 +15,6 @@ public class OrderedProductDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {

@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.product.entity;
 
+import com.usinsa.backend.domain.cart.entity.Cart;
 import com.usinsa.backend.domain.order.entity.OrderedProduct;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,9 @@ public class ProductOption {
 
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderedProduct> orderedProducts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Cart> carts = new ArrayList<>();
 
     // 연관관계 설정
     public void setProduct(Product product) {
