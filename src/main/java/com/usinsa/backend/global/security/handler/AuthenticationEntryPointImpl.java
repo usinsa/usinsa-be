@@ -1,4 +1,4 @@
-package com.usinsa.backend.global.security;
+package com.usinsa.backend.global.security.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

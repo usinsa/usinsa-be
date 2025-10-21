@@ -1,6 +1,6 @@
-package com.usinsa.backend.global.config;
+package com.usinsa.backend.global.security.config;
 
-import com.usinsa.backend.global.security.AuthenticationEntryPointImpl;
+import com.usinsa.backend.global.security.handler.AuthenticationEntryPointImpl;
 import com.usinsa.backend.global.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
