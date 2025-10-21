@@ -1,4 +1,4 @@
-package com.usinsa.backend.global.security;
+package com.usinsa.backend.global.filter;
 
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;

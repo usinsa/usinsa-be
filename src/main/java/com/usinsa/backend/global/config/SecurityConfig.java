@@ -1,7 +1,7 @@
 package com.usinsa.backend.global.config;
 
 import com.usinsa.backend.global.security.AuthenticationEntryPointImpl;
-import com.usinsa.backend.global.security.JwtAuthenticationFilter;
+import com.usinsa.backend.global.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +41,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 공개 경로(인증 없이 접근 가능)
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/api/v1/members/login", "/api/v1/members/signup").permitAll()
+                        .requestMatchers("/api/v1/members/login", "/api/v1/members/signup", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
                         // 그 외는 인증 필요
                         .anyRequest().authenticated()
