@@ -1,41 +1,28 @@
 package com.usinsa.backend.global.filter;
 
-import com.usinsa.backend.domain.member.entity.Member;
-import com.usinsa.backend.domain.member.repository.MemberRepository;
-import com.usinsa.backend.domain.member.service.AuthTokenService;
-import io.jsonwebtoken.JwtException;
+import com.usinsa.backend.global.security.token.AuthTokenService;
+import com.usinsa.backend.standard.util.Ut;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final AuthTokenService authTokenService;
-    private final MemberRepository memberRepository;
-
-    @Value("${custom.jwt.secret-key}")
-    private String secretKey;
-
-    private String resolveAccessToken(HttpServletRequest req) {
-        String h = req.getHeader("Authorization");
-        if (h != null && h.startsWith("Bearer ")) return h.substring(7);
-        return null; // 쿠키/ apiKey 제거
-    }
+    private final AuthTokenService tokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -43,37 +30,49 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        // 로그인, 회원가입 등은 SecurityConfig에서 permitAll 처리. 필터는 전부 통과시키고 유효하면 컨텍스트만 세팅
-        String token = resolveAccessToken(request);
+        // 1) 토큰 추출 (Bearer ...)
+        String token = tokenService.resolveAccessToken(request);
 
-        if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            try {
-                // payload 파싱 (AuthTokenService에 구현: Ut.Jwt.isValidToken + getPayload 조합)
-                Map<String, Object> payload = authTokenService.getPayload(token);
-                if (payload != null) {
-                    String username = (String) payload.get("usinaId"); // 또는 "email"/"username" 등 네가 넣은 클레임 키
-                    if (username == null) username = String.valueOf(payload.get("id"));
-
-                    // DB 조회 (정확한 principal로 통일: email 추천)
-                    Member m = memberRepository.findByUsinaId(username)
-                            .orElse(null); // email 기반이면 findByEmail로 변경
-
-                    if (m != null) {
-                        UserDetails user = User.withUsername(m.getEmail()) // principal은 email로 통일 권장
-                                .password(m.getPassword())
-                                .authorities(m.getIsAdmin() ? "ROLE_ADMIN" : "ROLE_USER")
-                                .build();
-
-                        UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(auth);
-                    }
-                }
-            } catch (JwtException | IllegalArgumentException e) {
-                // 유효하지 않은 토큰 -> 그냥 인증 없이 통과 (요청이 보호된 리소스면 EntryPoint가 401)
-            }
+        // 이미 인증되어 있거나 토큰이 없으면 패스
+        if (token == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+            chain.doFilter(request, response);
+            return;
         }
+
+        // 2) 유효성 검증 (서명/만료)
+        if (!Ut.Jwt.isValid(tokenService.getProps().getSecret(), token)) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 3) 블랙리스트 선차단
+        if (tokenService.isBlacklisted(token)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
+        }
+
+        // 4) 클레임 파싱
+        Claims c = Ut.Jwt.parse(tokenService.getProps().getSecret(), token);
+
+        if (!"access".equals(c.get("typ"))) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 필수 클레임: uid(식별자), rol(권한 목록)
+        Long uid = ((Number) c.get("uid")).longValue();
+        @SuppressWarnings("unchecked")
+        List<String> roles = (List<String>) c.get("rol");
+
+        var auth = new UsernamePasswordAuthenticationToken(
+                uid,                // principal: uid (필요하면 커스텀 Principal 클래스로 교체)
+                null,               // credentials
+                roles.stream().map(SimpleGrantedAuthority::new).toList()
+        );
+
+        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         chain.doFilter(request, response);
     }
 }
