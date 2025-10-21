@@ -23,35 +23,37 @@ public class Ut {
         /**
          * JWT 토큰 생성
          *
-         * @param secretKey     서명에 사용할 비밀 키
+         * @param secret     서명에 사용할 비밀 키
          * @param expireSeconds 토큰 만료 시간(초)
          * @param claims        토큰에 포함할 클레임(=payload)
          * @return 생성된 JWT 토큰 문자열
          */
-        public static String createToken(Key secretKey, int expireSeconds, Map<String, Object> claims) {
-            Date issuedAt = new Date();
-            Date expiration = new Date(issuedAt.getTime() + 1000L * expireSeconds);
+        public static String createToken(String secret, int expireSeconds, Map<String, Object> claims) {
+            Date now = new Date();
+            Date exp = new Date(now.getTime() + expireSeconds * 1000L);
+            Key key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
             return Jwts.builder()
                     .setClaims(claims)
-                    .setIssuedAt(issuedAt)
-                    .setExpiration(expiration)
-                    .signWith(secretKey, SignatureAlgorithm.HS256)
+                    .setIssuedAt(now)
+                    .setExpiration(exp)
+                    .signWith(key, SignatureAlgorithm.HS256)
                     .compact();
         }
+
+        public static Claims parse(String secret, String token) {
+            SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        }
+
         /**
          * ✅ 토큰 유효성 검증
          */
-        public static boolean isValidToken(String keyString, String token) {
+        public static boolean isValid(String secret, String token) {
             try {
-                SecretKey secretKey = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
-                Jwts.parserBuilder()
-                        .setSigningKey(secretKey)
-                        .build()
-                        .parseClaimsJws(token);
-                return true; // 파싱 성공 = 유효
+                parse(secret, token);
+                return true;
             } catch (JwtException | IllegalArgumentException e) {
-                // SignatureException, ExpiredJwtException, MalformedJwtException 등 모두 여기로 들어옴
                 return false;
             }
         }

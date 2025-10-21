@@ -23,11 +23,11 @@ public class AuthTokenService {
 
     public String genAccessToken(Member member) {
 
-        // secretKey를 -> Key 객체로 생성
-        Key secretKey = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
+        // secret를 -> Key 객체로 생성
+        Key secret = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
 
         return Ut.Jwt.createToken(
-                secretKey,
+                secret.toString(),
                 expireSeconds,
                 Map.of(
                         "id", member.getId(),
@@ -39,7 +39,7 @@ public class AuthTokenService {
     }
 
     public Map<String, Object> getPayload(String token) {
-        if (!Ut.Jwt.isValidToken(keyString, token)) return null;
+        if (!Ut.Jwt.isValid(keyString, token)) return null;
         return Ut.Jwt.getPayload(keyString, token);
     }
 }
