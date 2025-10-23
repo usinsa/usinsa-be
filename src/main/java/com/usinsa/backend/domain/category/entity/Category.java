@@ -28,9 +28,11 @@ public class Category {
 
     // 자기참조
     @OneToMany(mappedBy = "parent")
+    @Builder.Default 
     private List<Category> children = new ArrayList<>();
 
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<Product> products = new ArrayList<>();
 
     @Column(name = "category_name", nullable = false, length = 100)
