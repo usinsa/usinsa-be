@@ -17,4 +17,5 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @EntityGraph(attributePaths = {"category", "options"})
     List<Product> findAll();
 
+    List<Product> findByNameContaining(String keyword);
 }

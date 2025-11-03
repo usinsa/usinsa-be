@@ -20,6 +20,22 @@ services:
       timeout: 3s
       retries: 10
 
+  # Redis
+  redis:
+    image: redis:7.2
+    container_name: usinsa-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass usinsa
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   # 선택) pgAdmin UI
   pgadmin:
     image: dpage/pgadmin4:8
@@ -35,3 +51,4 @@ services:
 
 volumes:
   db_data:
+  redis-data:
