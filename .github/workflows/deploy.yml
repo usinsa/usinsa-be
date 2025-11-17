@@ -9,7 +9,7 @@ on:
       - 'backend/settings.gradle'
       - 'backend/Dockerfile'
     branches:
-      - deploy
+      - develop
 
 jobs:
   makeTagAndRelease:
