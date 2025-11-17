@@ -4,15 +4,12 @@ on:
   push:
     paths:
       - '.github/workflows/**'
-      - 'src/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'Dockerfile'
+      - 'backend/src/**'
+      - 'backend/build.gradle'
+      - 'backend/settings.gradle'
+      - 'backend/Dockerfile'
     branches:
-      - main
-
-env:
-  DOCKER_IMAGE_NAME: usinsa-app # 공통으로 설정해도 됨 (하지만 output도 병행)
+      - deploy
 
 jobs:
   makeTagAndRelease:
@@ -21,11 +18,13 @@ jobs:
       tag_name: ${{ steps.create_tag.outputs.new_tag }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Create Tag
         id: create_tag
         uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -51,7 +50,16 @@ jobs:
       - name: application-secret.yml 생성
         env:
           APPLICATION_SECRET: ${{ secrets.APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > backend/src/main/resources/application-secret.yml
+
+      - name: 기관코드 org_code.csv 존재 여부 확인
+        run: |
+          if [ -f backend/src/main/resources/data/org_code.csv ]; then
+            echo "✅ 기관코드 org_code.csv 파일이 존재합니다."
+          else
+            echo "❌ 기관코드 org_code.csv 파일이 존재하지 않습니다."
+            exit 1
+          fi
 
       - name: Docker Buildx 설치
         uses: docker/setup-buildx-action@v2
@@ -71,12 +79,12 @@ jobs:
 
       - name: export image name
         id: export_image
-        run: echo "image_name=app250416" >> $GITHUB_OUTPUT
+        run: echo "image_name=tung_app" >> $GITHUB_OUTPUT
 
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./backend
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/${{ steps.export_image.outputs.image_name }}:${{ needs.makeTagAndRelease.outputs.tag_name }},
@@ -84,21 +92,118 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [ buildImageAndPush ]
+    needs:
+      - makeTagAndRelease
+      - buildImageAndPush
     steps:
-      - name: AWS SSM Send-Command
+      - name: AWS 자격 증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: 태그로 EC2 인스턴스 ID 조회
+        id: get_instance_id
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=usinsa-main-ec2-1,usinsa-main-ec2-2" \
+                      "Name=instance-state-name,Values=running" \
+            --query "Reservations[].Instances[].InstanceId" \
+            --output text)
+
+          if [ -z "$INSTANCE_ID" ] || [ "$INSTANCE_ID" = "None" ]; then
+            echo "❌ 실행 중인 EC2 인스턴스를 찾지 못했습니다."
+            exit 1
+          fi
+
+          echo "INSTANCE_ID=$INSTANCE_ID" >> $GITHUB_ENV
+
+      - name: AWS SSM Blue-Green 배포
         uses: peterkimzz/aws-ssm-send-command@master
         id: ssm
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          instance-ids: "i-0db6fb21c31b44826"
+          instance-ids: ${{ env.INSTANCE_ID }}
           working-directory: /
-          comment: Deploy
+          comment: Blue-Green Deploy
           command: |
-            docker pull ghcr.io/${{ needs.buildImageAndPush.outputs.owner_lc }}/${{ needs.buildImageAndPush.outputs.image_name }}:latest && \
-            docker stop app1 2>/dev/null || true && \
-            docker rm app1 2>/dev/null || true && \
-            docker run -d --name app1 -p 8080:8080 ghcr.io/${{ needs.buildImageAndPush.outputs.owner_lc }}/${{ needs.buildImageAndPush.outputs.image_name }}:latest && \
-            docker rmi $(docker images -f "dangling=true" -q) || true
+            #!/bin/bash
+            set -e
+
+            # ===== 공통 설정 =====
+            IMAGE="ghcr.io/${{ needs.buildImageAndPush.outputs.owner_lc }}/${{ needs.buildImageAndPush.outputs.image_name }}:${{ needs.makeTagAndRelease.outputs.tag_name }}"
+            NETWORK="common"               # 미리 만들어둔 docker network 이름 (없으면 수정 필요)
+            HEALTH_ENDPOINT="/actuator/health"
+            TIMEOUT=60
+
+            echo "배포 이미지: $IMAGE"
+
+            # ===== 현재 실행 중인 컨테이너 판단 (Blue-Green) =====
+            if docker ps --format '{{.Names}}' | grep -q "^app1_1$"; then
+              CURRENT="app1_1"
+              NEXT="app1_2"
+              CURRENT_PORT=8080
+              NEXT_PORT=8081
+            else
+              CURRENT="app1_2"
+              NEXT="app1_1"
+              CURRENT_PORT=8081
+              NEXT_PORT=8080
+            fi
+
+            echo "현재 컨테이너: $CURRENT (포트: $CURRENT_PORT)"
+            echo "새로 띄울 컨테이너: $NEXT (포트: $NEXT_PORT)"
+
+            # ===== 새 컨테이너 실행 =====
+            echo "이미지 Pull: $IMAGE"
+            docker pull "$IMAGE"
+
+            echo "이전 $NEXT 컨테이너 정리"
+            docker stop "$NEXT" 2>/dev/null || true
+            docker rm "$NEXT" 2>/dev/null || true
+
+            echo "새 컨테이너 실행: $NEXT"
+            docker run -d \
+              --network "$NETWORK" \
+              --name "$NEXT" \
+              -p "$NEXT_PORT":8080 \
+              "$IMAGE"
+
+            # ===== 헬스 체크 =====
+            echo "헬스 체크 시작 (최대 ${TIMEOUT}초 대기)..."
+            START_TIME=$(date +%s)
+
+            while true; do
+              if CONTENT=$(curl -s "http://localhost:${NEXT_PORT}${HEALTH_ENDPOINT}"); then
+                if [[ "$CONTENT" == *'"status":"UP"'* ]]; then
+                  echo "✅ $NEXT 헬스 체크 성공: $CONTENT"
+                  break
+                fi
+              fi
+
+              ELAPSED_TIME=$(( $(date +%s) - START_TIME ))
+              if [[ $ELAPSED_TIME -ge $TIMEOUT ]]; then
+                echo "❌ Timeout: $NEXT 컨테이너가 ${TIMEOUT}초 이내에 기동되지 않았습니다."
+                echo "Rollback: 새 컨테이너 정리 및 기존 컨테이너 유지"
+                docker stop "$NEXT" 2>/dev/null || true
+                docker rm "$NEXT" 2>/dev/null || true
+                exit 1
+              fi
+
+              echo "⏳ $NEXT 헬스 체크 대기 중... (${ELAPSED_TIME}s 경과)"
+              sleep 5
+            done
+
+            # ===== 기존 컨테이너 종료 및 정리 =====
+            echo "기존 컨테이너 종료 및 삭제: $CURRENT"
+            docker stop "$CURRENT" 2>/dev/null || true
+            docker rm "$CURRENT" 2>/dev/null || true
+
+            # ===== Dangling 이미지 정리 =====
+            echo "Dangling 이미지 정리"
+            docker rmi $(docker images -f "dangling=true" -q) 2>/dev/null || true
+
+            echo "✅ Blue-Green 배포 완료. 현재 실행 중 컨테이너: $NEXT (포트: $NEXT_PORT)"
