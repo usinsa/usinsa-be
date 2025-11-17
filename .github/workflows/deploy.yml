@@ -50,11 +50,11 @@ jobs:
       - name: application-secret.yml 생성
         env:
           APPLICATION_SECRET: ${{ secrets.APPLICATION_SECRET }}
-        run: echo "$APPLICATION_SECRET" > backend/src/main/resources/application-secret.yml
+        run: echo "$APPLICATION_SECRET" > usinsa/src/main/resources/application-secret.yml
 
       - name: 기관코드 org_code.csv 존재 여부 확인
         run: |
-          if [ -f backend/src/main/resources/data/org_code.csv ]; then
+          if [ -f usinsa/src/main/resources/data/org_code.csv ]; then
             echo "✅ 기관코드 org_code.csv 파일이 존재합니다."
           else
             echo "❌ 기관코드 org_code.csv 파일이 존재하지 않습니다."
@@ -84,7 +84,7 @@ jobs:
       - name: 빌드 앤 푸시
         uses: docker/build-push-action@v3
         with:
-          context: ./backend
+          context: ./usinsa
           push: true
           tags: |
             ghcr.io/${{ steps.export_owner.outputs.owner_lc }}/${{ steps.export_image.outputs.image_name }}:${{ needs.makeTagAndRelease.outputs.tag_name }},
