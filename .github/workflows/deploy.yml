@@ -4,10 +4,10 @@ on:
   push:
     paths:
       - '.github/workflows/**'
-      - 'backend/src/**'
-      - 'backend/build.gradle'
-      - 'backend/settings.gradle'
-      - 'backend/Dockerfile'
+      - 'usina/src/**'
+      - 'usina/build.gradle'
+      - 'usina/settings.gradle'
+      - 'usina/Dockerfile'
     branches:
       - develop
 
