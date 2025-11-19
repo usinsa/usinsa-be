@@ -6,9 +6,8 @@ import lombok.*;
 public class ProductOptionDto {
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private String optionName;
@@ -16,8 +15,6 @@ public class ProductOptionDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {
@@ -25,14 +22,5 @@ public class ProductOptionDto {
         private String optionName;
         private Integer stock;
         private Long productId;
-
-        public static Response fromEntity(ProductOption option) {
-            return Response.builder()
-                    .id(option.getId())
-                    .optionName(option.getOptionName())
-                    .stock(option.getStock())
-                    .productId(option.getProduct().getId())
-                    .build();
-        }
     }
 }

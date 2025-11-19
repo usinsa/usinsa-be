@@ -7,9 +7,8 @@ import lombok.*;
 public class OrderDto {
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class CreateReq {
         private Long memberId;
@@ -19,9 +18,8 @@ public class OrderDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
     public static class UpdateReq {
         private String receiverAddress;
@@ -30,8 +28,6 @@ public class OrderDto {
     }
 
     @Getter
-    @Setter
-    @NoArgsConstructor
     @AllArgsConstructor
     @Builder
     public static class Response {

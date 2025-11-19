@@ -1,11 +1,17 @@
 package com.usinsa.backend.domain.member.entity;
 
+import com.usinsa.backend.domain.cart.entity.Cart;
+import com.usinsa.backend.domain.deliveryAddress.entity.DeliveryAddress;
+import com.usinsa.backend.domain.order.entity.Order;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name="member")
@@ -50,7 +56,14 @@ public class Member {
     @Column(name = "is_admin", nullable = false)
     private Boolean isAdmin = false;
 
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Order> Order = new ArrayList<>();
 
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DeliveryAddress> deliveryAddresses = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Cart> carts = new ArrayList<>();
 
     public void update(String name, String nickname, String email, String phone, String profileImage, Boolean isAdmin) {
         if (name != null) this.name = name;
