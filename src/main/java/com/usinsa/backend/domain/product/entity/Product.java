@@ -46,6 +46,18 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductOption> options = new ArrayList<>();
 
+    public void update(String name, String brandName, Long price) {
+        if (name != null && !name.isBlank()) {
+            this.name = name;
+        }
+        if (brandName != null && !brandName.isBlank()) {
+            this.brandName = brandName;
+        }
+        if (price != null && price > 0) {
+            this.price = price;
+        }
+    }
+
     // 연관관계 설정
     public void setCategory(Category category) {
         this.category = category;

@@ -17,6 +17,13 @@ spring:
       port: 6379
       password: ${redis.password}
 
+    elasticsearch:
+      repositories:
+        enabled: true
+      uris: http://localhost:9200
+      username:
+      password:
+
   jpa:
     show-sql: false
     hibernate:

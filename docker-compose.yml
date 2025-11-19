@@ -20,6 +20,20 @@ services:
       timeout: 3s
       retries: 10
 
+  # ES
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: usinsa-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
   # Redis
   redis:
     image: redis:7.2
@@ -52,3 +66,4 @@ services:
 volumes:
   db_data:
   redis-data:
+  es-data:

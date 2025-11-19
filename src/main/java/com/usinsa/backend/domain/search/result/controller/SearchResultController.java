@@ -3,6 +3,7 @@ package com.usinsa.backend.domain.search.result.controller;
 
 import com.usinsa.backend.domain.product.dto.ProductDto;
 import com.usinsa.backend.domain.product.entity.Product;
+import com.usinsa.backend.domain.search.result.dto.ProductSearchDto;
 import com.usinsa.backend.domain.search.result.service.SearchResultService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -21,8 +22,10 @@ public class SearchResultController {
 
     // 상품 검색
     @GetMapping
-    public List<ProductDto.Response> searchProducts(@RequestParam(required = false) Long userId,
-                                                    @RequestParam String keyword) {
+    public List<ProductSearchDto> search(
+            @RequestParam(required = false) Long userId,
+            @RequestParam String keyword
+    ) {
         return searchResultService.searchProducts(userId, keyword);
     }
 
