@@ -1,8 +1,10 @@
 package com.usinsa.backend.standard.util;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
@@ -21,21 +23,53 @@ public class Ut {
         /**
          * JWT 토큰 생성
          *
-         * @param secretKey     서명에 사용할 비밀 키
+         * @param secret     서명에 사용할 비밀 키
          * @param expireSeconds 토큰 만료 시간(초)
          * @param claims        토큰에 포함할 클레임(=payload)
          * @return 생성된 JWT 토큰 문자열
          */
-        public static String createToken(Key secretKey, int expireSeconds, Map<String, Object> claims) {
-            Date issuedAt = new Date();
-            Date expiration = new Date(issuedAt.getTime() + 1000L * expireSeconds);
+        public static String createToken(String secret, int expireSeconds, Map<String, Object> claims) {
+            Date now = new Date();
+            Date exp = new Date(now.getTime() + expireSeconds * 1000L);
+            Key key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
 
             return Jwts.builder()
                     .setClaims(claims)
-                    .setIssuedAt(issuedAt)
-                    .setExpiration(expiration)
-                    .signWith(secretKey, SignatureAlgorithm.HS256)
+                    .setIssuedAt(now)
+                    .setExpiration(exp)
+                    .signWith(key, SignatureAlgorithm.HS256)
                     .compact();
+        }
+
+        public static Claims parse(String secret, String token) {
+            SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+        }
+
+        /**
+         * ✅ 토큰 유효성 검증
+         */
+        public static boolean isValid(String secret, String token) {
+            try {
+                parse(secret, token);
+                return true;
+            } catch (JwtException | IllegalArgumentException e) {
+                return false;
+            }
+        }
+
+        /**
+         * ✅ 토큰 Payload(Claims) 추출
+         */
+        public static Map<String, Object> getPayload(String keyString, String token) {
+            SecretKey secretKey = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
+
+            Jws<Claims> jws = Jwts.parserBuilder()
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(token);
+
+            return jws.getBody();
         }
     }
 }
