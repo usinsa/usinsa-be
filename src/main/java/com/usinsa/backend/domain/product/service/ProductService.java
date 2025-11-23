@@ -8,7 +8,11 @@ import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
+import com.usinsa.backend.domain.search.elastic.event.ProductDeletedEvent;
+import com.usinsa.backend.domain.search.elastic.event.ProductSavedEvent;
+import com.usinsa.backend.domain.search.elastic.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +27,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductOptionRepository optionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 상품 등록
     public ProductDto.Response create(ProductDto.CreateReq request) {
@@ -32,7 +37,48 @@ public class ProductService {
         Product product = toEntity(request, category);
         Product saved = productRepository.save(product);
 
+        // ElasticSearch 저장 이벤트
+        eventPublisher.publishEvent(new ProductSavedEvent(saved));
+
         return toProductResDto(saved);
+    }
+
+    // 상품 수정
+    public ProductDto.Response update(Long productId, ProductDto.CreateReq request) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        // 업데이트
+        product.update(
+                request.getName(),
+                request.getBrand(),
+                request.getPrice()
+        );
+
+        eventPublisher.publishEvent(new ProductUpdatedEvent(product)); // ES 업데이트 이벤트
+
+        return toProductResDto(product);
+    }
+
+    // 상품 삭제
+    public void delete(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        productRepository.delete(product);
+        eventPublisher.publishEvent(new ProductDeletedEvent(productId));
+    }
+
+    // 옵션 추가
+    public ProductOptionDto.Response addOption(Long productId, ProductOptionDto.CreateReq request) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+
+        ProductOption option = toEntity(request, product);
+        ProductOption saved = optionRepository.save(option);
+
+        return toProductOptionResDto(saved);
     }
 
     // 상품 단건 조회
@@ -51,15 +97,15 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
-    // 상품 옵션 추가
-    public ProductOptionDto.Response addOption(Long productId, ProductOptionDto.CreateReq request) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+    // 전체 재색인 수행
+    public int rebuildIndex() {
+        List<Product> allProducts = productRepository.findAll();
 
-        ProductOption option = toEntity(request, product);
-        ProductOption saved = optionRepository.save(option);
+        allProducts.forEach(product ->
+                eventPublisher.publishEvent(new ProductSavedEvent(product))
+        );
 
-        return toProductOptionResDto(saved);
+        return allProducts.size();
     }
 
     private Product toEntity(ProductDto.CreateReq request, Category category) {
