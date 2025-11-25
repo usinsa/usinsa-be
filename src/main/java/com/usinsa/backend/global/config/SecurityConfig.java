@@ -48,7 +48,11 @@ public class SecurityConfig {
                 // 요청 경로별 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
                         // H2 콘솔 접근 허용 (개발 환경)
-                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers(
+                                "/h2-console/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         
                         // 인증 불필요 경로
                         .requestMatchers(
