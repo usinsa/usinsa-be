@@ -2,6 +2,7 @@ package com.usinsa.backend.domain.auth.token;
 
 import com.usinsa.backend.domain.auth.token.store.RefreshTokenStore;
 import com.usinsa.backend.domain.auth.token.store.TokenBlacklist;
+import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
 import com.usinsa.backend.global.util.JwtUtil;
@@ -88,6 +89,12 @@ public class JwtTokenService {
                 .accessExpEpochSec(accessExp)
                 .refreshExpEpochSec(refreshExp.getEpochSecond())
                 .build();
+    }
+
+    public TokenPair generateTokenPair(Member member) {
+        List<String> roles = new ArrayList<>();
+        roles.add(member.getIsAdmin() ? "ROLE_ADMIN" : "ROLE_USER");
+        return issueTokens(member.getId(), member.getEmail(), roles, UUID.randomUUID().toString());
     }
 
     /**

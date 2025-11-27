@@ -43,6 +43,7 @@ public class Product {
      ->Product를 저장/삭제할 때 관련된 ProductOption들도 같이 저장/삭제됨
        orphanRemoval = true
      ->Product의 options 컬렉션에서 제거된 ProductOption은 DB에서도 자동 삭제됨 */
+    @Builder.Default
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductOption> options = new ArrayList<>();
 

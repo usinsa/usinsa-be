@@ -29,8 +29,7 @@ public class Member {
     @NotBlank
     private String usinaId;
 
-    @Column(name = "password", nullable = false)
-    @NotBlank
+    @Column(name = "password")
     private String password;
 
     @Column(name = "name", nullable = false)
@@ -52,16 +51,25 @@ public class Member {
     @Column(name = "profile_image")
     private String profileImage;
 
+    @Column(name = "oauth_provider")
+    private String oauthProvider;
+
+    @Column(name = "oauth_id")
+    private String oauthId;
+
     @Builder.Default
     @Column(name = "is_admin", nullable = false)
     private Boolean isAdmin = false;
 
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Order> Order = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DeliveryAddress> deliveryAddresses = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cart> carts = new ArrayList<>();
 
