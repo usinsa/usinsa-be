@@ -130,8 +130,7 @@ class JwtTokenServiceTest {
         
         given(refreshStore.find(memberId, deviceId))
                 .willReturn(Optional.of(storedMeta));
-        given(refreshStore.save(any(TokenMeta.class)))
-                .willAnswer(invocation -> null);
+        willDoNothing().given(refreshStore).save(any(TokenMeta.class));
 
         // when
         TokenPair newTokens = jwtTokenService.rotateTokens(oldTokens.getRefreshToken(), deviceId);
