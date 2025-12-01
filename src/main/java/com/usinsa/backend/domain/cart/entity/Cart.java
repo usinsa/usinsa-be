@@ -21,13 +21,32 @@ public class Cart {
     @JoinColumn(name = "product_option_id", nullable = false)
     private ProductOption productOption;
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
+    @JoinColumn(name = "member_id", nullable = true)
     private Member member;
+
+    @Column(name = "session_id", length = 255)
+    private String sessionId;
 
     @Column(nullable = false)
     private Integer count;
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    public void setMember(Member member) {
+        this.member = member;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public boolean isGuestCart() {
+        return member == null && sessionId != null;
+    }
+
+    public boolean isMemberCart() {
+        return member != null;
     }
 }
