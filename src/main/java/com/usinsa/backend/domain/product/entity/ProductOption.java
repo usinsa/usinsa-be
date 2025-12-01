@@ -34,9 +34,11 @@ public class ProductOption {
     @Column(name = "stock", nullable = false)
     private Integer stock;
 
+    @Builder.Default
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderedProduct> orderedProducts = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "productOption", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Cart> carts = new ArrayList<>();
 
