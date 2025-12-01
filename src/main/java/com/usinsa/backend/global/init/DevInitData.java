@@ -26,7 +26,7 @@ public class DevInitData {
         return args -> {
             String apiDocsUrl = "http://localhost:8080/v3/api-docs/apiV1"; // Swagger 그룹
             String apiJsonPath = "apiV1.json"; // backend 기준 저장
-            String frontendSchemaPath = "../usinsa-fe/usinsa/libs/backend/apiV1/schema.d.ts"; // FE 타입 경로
+            String frontendSchemaPath = "../usinsa-fe/libs/backend/apiV1/schema.d.ts"; // FE 타입 경로
 
             // 1) 최신 API JSON 자동 생성
             genApiJsonFile(apiDocsUrl, apiJsonPath);
