@@ -1,6 +1,5 @@
 package com.usinsa.backend.domain.order.controller;
 
-import com.usinsa.backend.domain.delivery.dto.DeliveryDto;
 import com.usinsa.backend.domain.order.dto.OrderDto;
 import com.usinsa.backend.domain.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -10,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
 public class OrderController {
 

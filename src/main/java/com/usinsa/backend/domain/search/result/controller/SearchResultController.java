@@ -1,8 +1,6 @@
 package com.usinsa.backend.domain.search.result.controller;
 
 
-import com.usinsa.backend.domain.product.dto.ProductDto;
-import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.search.result.dto.ProductSearchDto;
 import com.usinsa.backend.domain.search.result.service.SearchResultService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/search")
+@RequestMapping("/api/v1/search")
 @RequiredArgsConstructor
 public class SearchResultController {
 
