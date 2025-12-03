@@ -41,7 +41,7 @@ public class BaseInitData implements CommandLineRunner {
     private void init() {
         // 회원 생성
         Member member = Member.builder()
-                .usinaId("user01")
+                .usinaId("user01@example.com")
                 .password("1234")
                 .name("홍길동")
                 .nickname("길동이")
