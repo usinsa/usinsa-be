@@ -34,6 +34,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+    private final CorsConfig corsConfig;
 
 
     @Bean
@@ -42,9 +43,8 @@ public class SecurityConfig {
                 // CSRF 비활성화 (JWT는 CSRF 공격에 안전)
                 .csrf(csrf -> csrf.disable())
 
-                // CORS 설정 (필요 시 별도 설정)
-                .cors(cors -> {
-                })
+                // CORS 설정
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 
                 // 세션을 STATELESS로 설정 (JWT는 서버 세션을 사용하지 않음)
                 .sessionManagement(sm ->
