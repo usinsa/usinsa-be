@@ -1,5 +1,7 @@
 package com.usinsa.backend.global.config;
 
+import com.usinsa.backend.domain.auth.oauth.config.OAuth2Properties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -14,20 +16,17 @@ import java.util.Arrays;
  * - OAuth 2.0 리다이렉트를 위해 필요
  */
 @Configuration
+@RequiredArgsConstructor
 public class CorsConfig {
+
+    private final OAuth2Properties oAuth2Properties;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 허용할 Origin (FE 도메인)
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",           // Vite 개발 서버
-                "http://localhost:3000",           // React/Next.js (예비)
-                "http://127.0.0.1:5173",          // localhost 대신 IP
-                "https://usinsa.com",             // 운영 도메인
-                "https://www.usinsa.com"          // www 서브도메인
-        ));
+        // OAuth2Properties에서 허용할 Origin 가져오기
+        configuration.setAllowedOrigins(Arrays.asList(oAuth2Properties.getAllowedOrigins()));
         
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList(

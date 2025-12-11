@@ -16,6 +16,14 @@ spring:
     serialization:
       indent-output: true
 
+# OAuth 설정
+oauth:
+  redirect-url: http://localhost:5173/oauth/redirect
+  allowed-origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+
 logging:
   level:
     root: INFO
+    com.usinsa.backend.domain.auth.oauth: DEBUG  # OAuth 상세 로그

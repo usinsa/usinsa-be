@@ -187,39 +187,6 @@ public class JwtTokenService {
     }
 
     /**
-     * HTTP 요청에서 Access Token 추출
-     * Authorization 헤더의 Bearer 토큰 파싱
-     *
-     * @param request HttpServletRequest
-     * @return Access Token (없으면 null)
-     */
-    public String resolveAccessToken(HttpServletRequest request) {
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-        return null;
-    }
-
-    /**
-     * HTTP 요청에서 Device ID 추출
-     * X-Device-Id 헤더 또는 User-Agent 해시값 사용
-     *
-     * @param request HttpServletRequest
-     * @return Device ID
-     */
-    public String resolveDeviceId(HttpServletRequest request) {
-        String deviceId = request.getHeader("X-Device-Id");
-        if (deviceId != null && !deviceId.isBlank()) {
-            return deviceId;
-        }
-        
-        // Device ID가 없으면 User-Agent 해시값 사용
-        String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
-        return Integer.toHexString(Objects.hash(userAgent));
-    }
-
-    /**
      * JWT Properties 조회 (Filter에서 필요 시 사용)
      */
     public JwtProperties getProperties() {

@@ -31,7 +31,6 @@ spring:
             scope:
               - profile_nickname
               - profile_image
-              - account_email
             client-name: Kakao
         provider:
           naver:

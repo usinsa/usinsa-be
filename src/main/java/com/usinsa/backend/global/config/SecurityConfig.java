@@ -70,6 +70,13 @@ public class SecurityConfig {
                                 "/api/v1/auth/refresh"
                         ).permitAll()
 
+                        // 소셜 로그인 시작 URL 허용
+                        .requestMatchers(
+                                "/api/v1/auth/oauth/**",
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/code/**"
+                        ).permitAll()
+
                         // GET 요청 공개 경로
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/posts",

@@ -7,6 +7,7 @@ import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
+import com.usinsa.backend.global.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,7 @@ public class AuthService {
         }
 
         // 디바이스 ID 추출
-        String deviceId = tokenService.resolveDeviceId(req);
+        String deviceId = CookieUtil.resolveDeviceId(req);
 
         // 회원 권한 로드 (실제 구현에 맞게 수정 필요)
         List<String> roles = List.of("ROLE_USER");
@@ -89,7 +90,7 @@ public class AuthService {
      * @return 새로운 TokenPair
      */
     public TokenPair refresh(AuthDto.RefreshReq body, HttpServletRequest req) {
-        String deviceId = tokenService.resolveDeviceId(req);
+        String deviceId = CookieUtil.resolveDeviceId(req);
         TokenPair tokenPair = tokenService.rotateTokens(body.getRefreshToken(), deviceId);
         
         log.info("Token refresh successful: deviceId={}", deviceId);
@@ -104,7 +105,7 @@ public class AuthService {
      * @param res HTTP 응답
      */
     public void logout(HttpServletRequest req, HttpServletResponse res) {
-        String accessToken = tokenService.resolveAccessToken(req);
+        String accessToken = CookieUtil.resolveAccessToken(req);
         
         if (accessToken != null) {
             tokenService.logout(accessToken);

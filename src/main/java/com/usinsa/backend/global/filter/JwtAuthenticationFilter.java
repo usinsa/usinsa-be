@@ -2,6 +2,7 @@ package com.usinsa.backend.global.filter;
 
 import com.usinsa.backend.domain.auth.token.JwtTokenService;
 import com.usinsa.backend.domain.auth.token.TokenType;
+import com.usinsa.backend.global.util.CookieUtil;
 import com.usinsa.backend.global.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -20,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+
 /**
  * JWT 인증 필터
  * 모든 HTTP 요청에서 JWT 토큰을 검증하고 SecurityContext에 인증 정보 설정
@@ -37,8 +39,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        // 1. Authorization 헤더에서 Access Token 추출
-        String token = tokenService.resolveAccessToken(request);
+        // 1. 쿠키 또는 헤더에서 Access Token 추출
+        String token = CookieUtil.resolveAccessToken(request);
 
         // 토큰이 없거나 이미 인증된 경우 다음 필터로 진행
         if (token == null || SecurityContextHolder.getContext().getAuthentication() != null) {
