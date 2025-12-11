@@ -39,7 +39,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        // 1. 쿠키 또는 헤더에서 Access Token 추출
+        String uri = request.getRequestURI();
+
+        // ⭐ OAuth 인증 과정의 URL은 JWT 검사에서 제외해야 한다
+        if (uri.startsWith("/oauth2/authorization") || uri.startsWith("/login/oauth2/code")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+            // 1. 쿠키 또는 헤더에서 Access Token 추출
         String token = CookieUtil.resolveAccessToken(request);
 
         // 토큰이 없거나 이미 인증된 경우 다음 필터로 진행
