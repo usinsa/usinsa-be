@@ -94,7 +94,7 @@ class ProductServiceTest {
             assertThat(result.getName()).isEqualTo("반팔 티셔츠");
             assertThat(result.getBrandName()).isEqualTo("나이키");
             assertThat(result.getPrice()).isEqualTo(39000L);
-            verify(eventPublisher).publishEvent(any());
+            verify(eventPublisher).publishEvent(any(Object.class));
         }
 
         @Test
@@ -190,7 +190,7 @@ class ProductServiceTest {
 
             // then
             assertThat(result).isNotNull();
-            verify(eventPublisher).publishEvent(any());
+            verify(eventPublisher).publishEvent(any(Object.class));
         }
 
         @Test
@@ -222,7 +222,7 @@ class ProductServiceTest {
 
             // then
             verify(productRepository).delete(testProduct);
-            verify(eventPublisher).publishEvent(any());
+            verify(eventPublisher).publishEvent(any(Object.class));
         }
 
         @Test

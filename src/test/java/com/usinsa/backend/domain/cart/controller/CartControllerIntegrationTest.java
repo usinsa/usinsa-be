@@ -117,7 +117,7 @@ class CartControllerIntegrationTest {
                 .build();
 
         // when & then
-        mockMvc.perform(post("/carts/guest")
+        mockMvc.perform(post("/api/v1/carts/guest")
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -140,7 +140,7 @@ class CartControllerIntegrationTest {
         cartRepository.save(guestCart);
 
         // when & then
-        mockMvc.perform(get("/carts/guest")
+        mockMvc.perform(get("/api/v1/carts/guest")
                         .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].productOptionId").value(testProductOption.getId()))
@@ -159,7 +159,7 @@ class CartControllerIntegrationTest {
                 .build();
 
         // when & then
-        mockMvc.perform(post("/carts")
+        mockMvc.perform(post("/api/v1/carts")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -181,7 +181,7 @@ class CartControllerIntegrationTest {
         cartRepository.save(guestCart);
 
         // when - 병합 API 호출
-        mockMvc.perform(post("/carts/merge/" + testMember.getId())
+        mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
                         .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].memberId").value(testMember.getId()))
@@ -189,7 +189,7 @@ class CartControllerIntegrationTest {
                 .andExpect(jsonPath("$[0].guest").value(false));
 
         // then - 비회원 장바구니가 삭제되었는지 확인
-        mockMvc.perform(get("/carts/guest")
+        mockMvc.perform(get("/api/v1/carts/guest")
                         .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isEmpty());
@@ -215,13 +215,13 @@ class CartControllerIntegrationTest {
         cartRepository.save(guestCart);
 
         // when - 병합
-        mockMvc.perform(post("/carts/merge/" + testMember.getId())
+        mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
                         .session(session))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].count").value(5)); // 2 + 3
 
         // then - 장바구니 항목이 1개만 있는지 확인
-        mockMvc.perform(get("/carts/member/" + testMember.getId()))
+        mockMvc.perform(get("/api/v1/carts/member/" + testMember.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
     }
@@ -242,7 +242,7 @@ class CartControllerIntegrationTest {
                 .build();
 
         // when & then
-        mockMvc.perform(put("/carts/" + cart.getId())
+        mockMvc.perform(put("/api/v1/carts/" + cart.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateReq)))
                 .andExpect(status().isOk())
@@ -261,7 +261,7 @@ class CartControllerIntegrationTest {
         cart = cartRepository.save(cart);
 
         // when & then
-        mockMvc.perform(delete("/carts/" + cart.getId()))
+        mockMvc.perform(delete("/api/v1/carts/" + cart.getId()))
                 .andExpect(status().isNoContent());
 
         // 삭제 확인
@@ -280,7 +280,7 @@ class CartControllerIntegrationTest {
         cartRepository.save(guestCart);
 
         // when & then
-        mockMvc.perform(delete("/carts/guest")
+        mockMvc.perform(delete("/api/v1/carts/guest")
                         .session(session))
                 .andExpect(status().isNoContent());
 
