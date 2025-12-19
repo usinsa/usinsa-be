@@ -47,6 +47,23 @@ public class CartDto {
         private String sessionId;
         private int count;
         private boolean guest; // isGuest 작명시 JSON 직렬화 문제발생 (Jackson의 getter기반)
+
+        // 프론트엔드 표시용 상품 정보
+        private ProductInfo productInfo;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ProductInfo {
+        private Long productId;
+        private String productName;
+        private String brandName;
+        private Long price;
+        private String optionName;
+        private Integer stock;
     }
 
     @Getter

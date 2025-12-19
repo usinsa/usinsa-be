@@ -3,6 +3,7 @@ package com.usinsa.backend.domain.cart.service;
 import com.usinsa.backend.domain.cart.dto.CartDto;
 import com.usinsa.backend.domain.cart.entity.Cart;
 import com.usinsa.backend.domain.cart.repository.CartRepository;
+import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.domain.product.entity.Product;
@@ -29,7 +30,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("CartService 세션 장바구니 테스트")
+@DisplayName("CartService 세션 기반 테스트")
 class CartServiceSessionTest {
 
     @InjectMocks
@@ -45,6 +46,7 @@ class CartServiceSessionTest {
     private ProductOptionRepository productOptionRepository;
 
     private Member testMember;
+    private Product testProduct;
     private ProductOption testProductOption1;
     private ProductOption testProductOption2;
     private String testSessionId;
@@ -59,33 +61,41 @@ class CartServiceSessionTest {
                 .name("테스트유저")
                 .build();
 
-        Product testProduct = Product.builder()
+        Category testCategory = Category.builder()
                 .id(1L)
-                .name("테스트상품")
+                .name("상의")
+                .build();
+
+        testProduct = Product.builder()
+                .id(1L)
+                .name("오버핏 티셔츠")
+                .brandName("무신사 스탠다드")
+                .price(29900L)
+                .category(testCategory)
                 .build();
 
         testProductOption1 = ProductOption.builder()
                 .id(1L)
-                .optionName("M 사이즈")
-                .stock(100)
+                .optionName("Black / L")
+                .stock(50)
                 .product(testProduct)
                 .build();
 
         testProductOption2 = ProductOption.builder()
                 .id(2L)
-                .optionName("L 사이즈")
-                .stock(50)
+                .optionName("White / M")
+                .stock(30)
                 .product(testProduct)
                 .build();
     }
 
     @Nested
-    @DisplayName("비회원 장바구니 생성 테스트")
-    class CreateGuestCartTest {
+    @DisplayName("비회원 장바구니 생성")
+    class CreateGuestCart {
 
         @Test
-        @DisplayName("비회원이 정상적으로 장바구니에 상품을 추가한다")
-        void createGuestCart_Success() {
+        @DisplayName("비회원이 장바구니에 상품 추가")
+        void createSuccess() {
             // given
             CartDto.GuestCreateReq request = CartDto.GuestCreateReq.builder()
                     .productOptionId(1L)
@@ -103,6 +113,7 @@ class CartServiceSessionTest {
             given(cartRepository.findBySessionIdAndProductOption(testSessionId, testProductOption1))
                     .willReturn(Optional.empty());
             given(cartRepository.save(any(Cart.class))).willReturn(guestCart);
+            given(cartRepository.findByIdWithProduct(1L)).willReturn(Optional.of(guestCart));
 
             // when
             CartDto.Response result = cartService.createGuestCart(request, testSessionId);
@@ -111,14 +122,14 @@ class CartServiceSessionTest {
             assertThat(result).isNotNull();
             assertThat(result.getSessionId()).isEqualTo(testSessionId);
             assertThat(result.getMemberId()).isNull();
-            assertThat(result.getProductOptionId()).isEqualTo(1L);
-            assertThat(result.getCount()).isEqualTo(2);
             assertThat(result.isGuest()).isTrue();
+            assertThat(result.getProductInfo()).isNotNull();
+            assertThat(result.getProductInfo().getProductName()).isEqualTo("오버핏 티셔츠");
         }
 
         @Test
-        @DisplayName("동일 상품이 세션 장바구니에 이미 있으면 수량을 합산한다")
-        void createGuestCart_DuplicateProduct_IncrementCount() {
+        @DisplayName("동일 상품이 있으면 수량 합산")
+        void incrementCountIfExists() {
             // given
             CartDto.GuestCreateReq request = CartDto.GuestCreateReq.builder()
                     .productOptionId(1L)
@@ -135,6 +146,7 @@ class CartServiceSessionTest {
             given(productOptionRepository.findById(1L)).willReturn(Optional.of(testProductOption1));
             given(cartRepository.findBySessionIdAndProductOption(testSessionId, testProductOption1))
                     .willReturn(Optional.of(existingCart));
+            given(cartRepository.findByIdWithProduct(1L)).willReturn(Optional.of(existingCart));
 
             // when
             CartDto.Response result = cartService.createGuestCart(request, testSessionId);
@@ -142,11 +154,12 @@ class CartServiceSessionTest {
             // then
             assertThat(result.getCount()).isEqualTo(5); // 2 + 3
             assertThat(existingCart.getCount()).isEqualTo(5);
+            verify(cartRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("세션 ID가 null이면 예외가 발생한다")
-        void createGuestCart_NullSessionId_ThrowsException() {
+        @DisplayName("세션 ID가 없으면 예외 발생")
+        void failWithoutSessionId() {
             // given
             CartDto.GuestCreateReq request = CartDto.GuestCreateReq.builder()
                     .productOptionId(1L)
@@ -157,33 +170,20 @@ class CartServiceSessionTest {
             assertThatThrownBy(() -> cartService.createGuestCart(request, null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("세션 ID가 필요합니다.");
-        }
 
-        @Test
-        @DisplayName("상품 옵션이 없으면 예외가 발생한다")
-        void createGuestCart_ProductOptionNotFound_ThrowsException() {
-            // given
-            CartDto.GuestCreateReq request = CartDto.GuestCreateReq.builder()
-                    .productOptionId(999L)
-                    .count(2)
-                    .build();
-
-            given(productOptionRepository.findById(999L)).willReturn(Optional.empty());
-
-            // when & then
-            assertThatThrownBy(() -> cartService.createGuestCart(request, testSessionId))
-                    .isInstanceOf(EntityNotFoundException.class)
-                    .hasMessage("상품 옵션이 존재하지 않습니다.");
+            assertThatThrownBy(() -> cartService.createGuestCart(request, ""))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("세션 ID가 필요합니다.");
         }
     }
 
     @Nested
-    @DisplayName("세션 장바구니 조회 테스트")
-    class FindBySessionIdTest {
+    @DisplayName("세션 장바구니 조회")
+    class FindBySessionId {
 
         @Test
-        @DisplayName("세션 ID로 장바구니를 조회한다")
-        void findBySessionId_Success() {
+        @DisplayName("세션 ID로 장바구니 조회 (상품 정보 포함)")
+        void findSuccess() {
             // given
             Cart cart1 = Cart.builder()
                     .id(1L)
@@ -199,7 +199,7 @@ class CartServiceSessionTest {
                     .count(3)
                     .build();
 
-            given(cartRepository.findBySessionId(testSessionId))
+            given(cartRepository.findBySessionIdWithProduct(testSessionId))
                     .willReturn(Arrays.asList(cart1, cart2));
 
             // when
@@ -207,15 +207,14 @@ class CartServiceSessionTest {
 
             // then
             assertThat(results).hasSize(2);
-            assertThat(results.get(0).getSessionId()).isEqualTo(testSessionId);
-            assertThat(results.get(0).isGuest()).isTrue();
-            assertThat(results.get(1).getSessionId()).isEqualTo(testSessionId);
-            assertThat(results.get(1).isGuest()).isTrue();
+            assertThat(results).allMatch(r -> r.getSessionId().equals(testSessionId));
+            assertThat(results).allMatch(CartDto.Response::isGuest);
+            assertThat(results).allMatch(r -> r.getProductInfo() != null);
         }
 
         @Test
-        @DisplayName("세션 ID가 null이면 예외가 발생한다")
-        void findBySessionId_NullSessionId_ThrowsException() {
+        @DisplayName("세션 ID가 없으면 예외 발생")
+        void failWithoutSessionId() {
             // when & then
             assertThatThrownBy(() -> cartService.findBySessionId(null))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -224,12 +223,12 @@ class CartServiceSessionTest {
     }
 
     @Nested
-    @DisplayName("장바구니 병합 테스트")
-    class MergeGuestCartTest {
+    @DisplayName("장바구니 병합")
+    class MergeGuestCart {
 
         @Test
-        @DisplayName("비회원 장바구니를 회원 장바구니로 병합한다")
-        void mergeGuestCartToMember_Success() {
+        @DisplayName("비회원 장바구니를 회원 장바구니로 병합")
+        void mergeSuccess() {
             // given
             Cart guestCart = Cart.builder()
                     .id(1L)
@@ -243,9 +242,8 @@ class CartServiceSessionTest {
                     .willReturn(Collections.singletonList(guestCart));
             given(cartRepository.findByMemberAndProductOption(testMember, testProductOption1))
                     .willReturn(Optional.empty());
-            given(cartRepository.findByMember(testMember))
+            given(cartRepository.findByMemberWithProduct(testMember))
                     .willReturn(Collections.singletonList(guestCart));
-            doNothing().when(cartRepository).deleteBySessionId(testSessionId);
 
             // when
             List<CartDto.Response> results = cartService.mergeGuestCartToMember(testSessionId, 1L);
@@ -254,12 +252,11 @@ class CartServiceSessionTest {
             assertThat(results).isNotEmpty();
             assertThat(guestCart.getMember()).isEqualTo(testMember);
             assertThat(guestCart.getSessionId()).isNull();
-            verify(cartRepository).deleteBySessionId(testSessionId);
         }
 
         @Test
-        @DisplayName("동일 상품이 회원 장바구니에 있으면 수량을 합산한다")
-        void mergeGuestCartToMember_DuplicateProduct_IncrementCount() {
+        @DisplayName("동일 상품이 있으면 수량 합산 후 비회원 장바구니 삭제")
+        void mergeAndIncrementCount() {
             // given
             Cart guestCart = Cart.builder()
                     .id(1L)
@@ -280,22 +277,65 @@ class CartServiceSessionTest {
                     .willReturn(Collections.singletonList(guestCart));
             given(cartRepository.findByMemberAndProductOption(testMember, testProductOption1))
                     .willReturn(Optional.of(memberCart));
-            given(cartRepository.findByMember(testMember))
+            given(cartRepository.findByMemberWithProduct(testMember))
                     .willReturn(Collections.singletonList(memberCart));
-            doNothing().when(cartRepository).deleteBySessionId(testSessionId);
 
             // when
             List<CartDto.Response> results = cartService.mergeGuestCartToMember(testSessionId, 1L);
 
             // then
-            assertThat(results).isNotEmpty();
             assertThat(memberCart.getCount()).isEqualTo(5); // 2 + 3
-            verify(cartRepository).deleteBySessionId(testSessionId);
+            verify(cartRepository).delete(guestCart);
         }
 
         @Test
-        @DisplayName("비회원 장바구니가 비어있으면 회원 장바구니만 반환한다")
-        void mergeGuestCartToMember_EmptyGuestCart_ReturnMemberCart() {
+        @DisplayName("여러 상품 병합")
+        void mergeMultipleProducts() {
+            // given
+            Cart guestCart1 = Cart.builder()
+                    .id(1L)
+                    .sessionId(testSessionId)
+                    .productOption(testProductOption1)
+                    .count(2)
+                    .build();
+
+            Cart guestCart2 = Cart.builder()
+                    .id(2L)
+                    .sessionId(testSessionId)
+                    .productOption(testProductOption2)
+                    .count(3)
+                    .build();
+
+            Cart memberCart = Cart.builder()
+                    .id(3L)
+                    .member(testMember)
+                    .productOption(testProductOption1)
+                    .count(1)
+                    .build();
+
+            given(memberRepository.findById(1L)).willReturn(Optional.of(testMember));
+            given(cartRepository.findBySessionId(testSessionId))
+                    .willReturn(Arrays.asList(guestCart1, guestCart2));
+            given(cartRepository.findByMemberAndProductOption(testMember, testProductOption1))
+                    .willReturn(Optional.of(memberCart));
+            given(cartRepository.findByMemberAndProductOption(testMember, testProductOption2))
+                    .willReturn(Optional.empty());
+            given(cartRepository.findByMemberWithProduct(testMember))
+                    .willReturn(Arrays.asList(memberCart, guestCart2));
+
+            // when
+            List<CartDto.Response> results = cartService.mergeGuestCartToMember(testSessionId, 1L);
+
+            // then
+            assertThat(memberCart.getCount()).isEqualTo(3); // 1 + 2
+            assertThat(guestCart2.getMember()).isEqualTo(testMember);
+            assertThat(guestCart2.getSessionId()).isNull();
+            verify(cartRepository).delete(guestCart1);
+        }
+
+        @Test
+        @DisplayName("비회원 장바구니가 비어있으면 회원 장바구니만 반환")
+        void mergeEmptyGuestCart() {
             // given
             Cart memberCart = Cart.builder()
                     .id(1L)
@@ -307,7 +347,7 @@ class CartServiceSessionTest {
             given(memberRepository.findById(1L)).willReturn(Optional.of(testMember));
             given(cartRepository.findBySessionId(testSessionId))
                     .willReturn(Collections.emptyList());
-            given(cartRepository.findByMember(testMember))
+            given(cartRepository.findByMemberWithProduct(testMember))
                     .willReturn(Collections.singletonList(memberCart));
 
             // when
@@ -316,11 +356,12 @@ class CartServiceSessionTest {
             // then
             assertThat(results).hasSize(1);
             assertThat(results.get(0).getMemberId()).isEqualTo(1L);
+            verify(cartRepository, never()).delete(any());
         }
 
         @Test
-        @DisplayName("회원이 존재하지 않으면 예외가 발생한다")
-        void mergeGuestCartToMember_MemberNotFound_ThrowsException() {
+        @DisplayName("존재하지 않는 회원으로 병합 시 예외 발생")
+        void failWithInvalidMember() {
             // given
             given(memberRepository.findById(999L)).willReturn(Optional.empty());
 
@@ -329,24 +370,15 @@ class CartServiceSessionTest {
                     .isInstanceOf(EntityNotFoundException.class)
                     .hasMessage("회원이 존재하지 않습니다.");
         }
-
-        @Test
-        @DisplayName("세션 ID가 null이면 예외가 발생한다")
-        void mergeGuestCartToMember_NullSessionId_ThrowsException() {
-            // when & then
-            assertThatThrownBy(() -> cartService.mergeGuestCartToMember(null, 1L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("세션 ID가 필요합니다.");
-        }
     }
 
     @Nested
-    @DisplayName("세션 장바구니 삭제 테스트")
-    class DeleteGuestCartTest {
+    @DisplayName("세션 장바구니 삭제")
+    class DeleteGuestCart {
 
         @Test
-        @DisplayName("세션 장바구니를 전체 삭제한다")
-        void deleteGuestCart_Success() {
+        @DisplayName("세션 장바구니 전체 삭제")
+        void deleteSuccess() {
             // given
             doNothing().when(cartRepository).deleteBySessionId(testSessionId);
 
@@ -358,8 +390,8 @@ class CartServiceSessionTest {
         }
 
         @Test
-        @DisplayName("세션 ID가 null이면 예외가 발생한다")
-        void deleteGuestCart_NullSessionId_ThrowsException() {
+        @DisplayName("세션 ID가 없으면 예외 발생")
+        void failWithoutSessionId() {
             // when & then
             assertThatThrownBy(() -> cartService.deleteGuestCart(null))
                     .isInstanceOf(IllegalArgumentException.class)

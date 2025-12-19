@@ -5,6 +5,7 @@ import com.usinsa.backend.domain.cart.entity.Cart;
 import com.usinsa.backend.domain.cart.repository.CartRepository;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
+import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -40,7 +41,10 @@ public class CartService {
         if (existingCart.isPresent()) {
             Cart cart = existingCart.get();
             cart.setCount(cart.getCount() + request.getCount());
-            return toResDto(cart);
+            // 생성 후에는 상품 정보와 함께 조회
+            Cart updated = cartRepository.findByIdWithProduct(cart.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+            return toResponseDto(updated);
         }
 
         Cart cart = Cart.builder()
@@ -49,16 +53,18 @@ public class CartService {
                 .count(request.getCount())
                 .build();
         Cart saved = cartRepository.save(cart);
-        return toResDto(saved);
+
+        // 저장 후 상품 정보와 함께 조회
+        Cart result = cartRepository.findByIdWithProduct(saved.getId())
+                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+        return toResponseDto(result);
     }
 
     /**
      * 비회원(세션 기반) 장바구니 생성
      */
     public CartDto.Response createGuestCart(CartDto.GuestCreateReq request, String sessionId) {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("세션 ID가 필요합니다.");
-        }
+        validateSessionId(sessionId);
 
         ProductOption productOption = productOptionRepository.findById(request.getProductOptionId())
                 .orElseThrow(() -> new EntityNotFoundException("상품 옵션이 존재하지 않습니다."));
@@ -68,7 +74,13 @@ public class CartService {
         if (existingCart.isPresent()) {
             Cart cart = existingCart.get();
             cart.setCount(cart.getCount() + request.getCount());
-            return toResDto(cart);
+            log.info("비회원 장바구니 수량 추가 - SessionId: {}, ProductOptionId: {}, Count: {}",
+                    sessionId, productOption.getId(), cart.getCount());
+
+            // 수정 후 상품 정보와 함께 조회
+            Cart updated = cartRepository.findByIdWithProduct(cart.getId())
+                    .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+            return toResponseDto(updated);
         }
 
         Cart cart = Cart.builder()
@@ -78,20 +90,24 @@ public class CartService {
                 .build();
         Cart saved = cartRepository.save(cart);
         log.info("비회원 장바구니 생성 - SessionId: {}, ProductOptionId: {}", sessionId, productOption.getId());
-        return toResDto(saved);
+
+        // 저장 후 상품 정보와 함께 조회
+        Cart result = cartRepository.findByIdWithProduct(saved.getId())
+                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+        return toResponseDto(result);
     }
 
     @Transactional(readOnly = true)
     public CartDto.Response findById(Long id) {
-        Cart cart = cartRepository.findById(id)
+        Cart cart = cartRepository.findByIdWithProduct(id)
                 .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
-        return toResDto(cart);
+        return toResponseDto(cart);
     }
 
     @Transactional(readOnly = true)
     public List<CartDto.Response> findAll() {
         return cartRepository.findAll().stream()
-                .map(this::toResDto)
+                .map(this::toResponseDto)
                 .toList();
     }
 
@@ -102,8 +118,8 @@ public class CartService {
     public List<CartDto.Response> findByMemberId(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
-        return cartRepository.findByMember(member).stream()
-                .map(this::toResDto)
+        return cartRepository.findByMemberWithProduct(member).stream()
+                .map(this::toResponseDto)
                 .toList();
     }
 
@@ -112,20 +128,18 @@ public class CartService {
      */
     @Transactional(readOnly = true)
     public List<CartDto.Response> findBySessionId(String sessionId) {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("세션 ID가 필요합니다.");
-        }
-        return cartRepository.findBySessionId(sessionId).stream()
-                .map(this::toResDto)
+        validateSessionId(sessionId);
+        return cartRepository.findBySessionIdWithProduct(sessionId).stream()
+                .map(this::toResponseDto)
                 .toList();
     }
 
     public CartDto.Response update(Long id, CartDto.UpdateReq request) {
-        Cart cart = cartRepository.findById(id)
+        Cart cart = cartRepository.findByIdWithProduct(id)
                 .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
 
         cart.setCount(request.getCount());
-        return toResDto(cart);
+        return toResponseDto(cart);
     }
 
     public void delete(Long id) {
@@ -137,20 +151,14 @@ public class CartService {
 
     /**
      * 비회원 장바구니를 회원 장바구니로 병합 (로그인 시 호출)
-     * 1. 세션 ID로 비회원 장바구니를 조회
-     * 2. 각 항목을 회원 장바구니로 변환
-     * 3. 동일 상품이 있으면 수량을 합산
-     * 4. 비회원 장바구니 항목 삭제
      */
     public List<CartDto.Response> mergeGuestCartToMember(String sessionId, Long memberId) {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("세션 ID가 필요합니다.");
-        }
+        validateSessionId(sessionId);
 
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
 
-        // 비회원 장바구니 항목 조회
+        // 비회원 장바구니 항목 조회 (간단 조회)
         List<Cart> guestCarts = cartRepository.findBySessionId(sessionId);
 
         if (guestCarts.isEmpty()) {
@@ -168,11 +176,13 @@ public class CartService {
             Optional<Cart> existingMemberCart = cartRepository.findByMemberAndProductOption(member, productOption);
 
             if (existingMemberCart.isPresent()) {
-                // 이미 있으면 수량 합산
+                // 이미 있으면 수량 합산 후 비회원 장바구니 삭제
                 Cart memberCart = existingMemberCart.get();
-                memberCart.setCount(memberCart.getCount() + guestCart.getCount());
-                log.info("기존 회원 장바구니에 수량 합산 - ProductOptionId: {}, 기존: {}, 추가: {}",
-                        productOption.getId(), memberCart.getCount() - guestCart.getCount(), guestCart.getCount());
+                int originalCount = memberCart.getCount();
+                memberCart.setCount(originalCount + guestCart.getCount());
+                cartRepository.delete(guestCart);
+                log.info("기존 회원 장바구니에 수량 합산 후 비회원 장바구니 삭제 - ProductOptionId: {}, 기존: {}, 추가: {}",
+                        productOption.getId(), originalCount, guestCart.getCount());
             } else {
                 // 없으면 비회원 장바구니를 회원 장바구니로 변환
                 guestCart.setMember(member);
@@ -180,10 +190,6 @@ public class CartService {
                 log.info("비회원 장바구니를 회원 장바구니로 변환 - ProductOptionId: {}", productOption.getId());
             }
         }
-
-        // 비회원 장바구니에서 회원으로 변환된 항목은 자동으로 member_id가 설정되므로
-        // 남은 sessionId만 있는 항목들을 삭제 (이미 변환된 경우)
-        cartRepository.deleteBySessionId(sessionId);
 
         log.info("비회원 장바구니 병합 완료 - MemberId: {}", memberId);
 
@@ -194,21 +200,38 @@ public class CartService {
      * 세션 장바구니 전체 삭제
      */
     public void deleteGuestCart(String sessionId) {
-        if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("세션 ID가 필요합니다.");
-        }
+        validateSessionId(sessionId);
         cartRepository.deleteBySessionId(sessionId);
         log.info("비회원 장바구니 삭제 - SessionId: {}", sessionId);
     }
 
-    private CartDto.Response toResDto(Cart cart) {
+    private void validateSessionId(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("세션 ID가 필요합니다.");
+        }
+    }
+
+    private CartDto.Response toResponseDto(Cart cart) {
+        ProductOption productOption = cart.getProductOption();
+        Product product = productOption.getProduct();
+
+        CartDto.ProductInfo productInfo = CartDto.ProductInfo.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .brandName(product.getBrandName())
+                .price(product.getPrice())
+                .optionName(productOption.getOptionName())
+                .stock(productOption.getStock())
+                .build();
+
         return CartDto.Response.builder()
                 .id(cart.getId())
                 .memberId(cart.getMember() != null ? cart.getMember().getId() : null)
                 .sessionId(cart.getSessionId())
-                .productOptionId(cart.getProductOption().getId())
+                .productOptionId(productOption.getId())
                 .count(cart.getCount())
                 .guest(cart.isGuestCart())
+                .productInfo(productInfo)
                 .build();
     }
 }
