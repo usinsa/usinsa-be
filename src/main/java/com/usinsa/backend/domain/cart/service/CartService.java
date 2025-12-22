@@ -197,12 +197,36 @@ public class CartService {
     }
 
     /**
-     * 세션 장바구니 전체 삭제
+     * 세션 장바구니 전체 삭제 (컨트롤러용)
      */
     public void deleteGuestCart(String sessionId) {
         validateSessionId(sessionId);
         cartRepository.deleteBySessionId(sessionId);
         log.info("비회원 장바구니 삭제 - SessionId: {}", sessionId);
+    }
+
+    /**
+     * 세션 ID로 비회원 장바구니 삭제 (세션 리스너용)
+     * 
+     * @param sessionId 세션 ID
+     * @return 삭제된 장바구니 항목 수
+     */
+    public int deleteGuestCartBySessionId(String sessionId) {
+        if (sessionId == null || sessionId.isBlank()) {
+            log.warn("유효하지 않은 세션 ID - 비회원 장바구니 삭제 건너뜀");
+            return 0;
+        }
+        
+        List<Cart> guestCarts = cartRepository.findBySessionId(sessionId);
+        int count = guestCarts.size();
+        
+        if (count > 0) {
+            cartRepository.deleteBySessionId(sessionId);
+            log.info("세션 만료로 인한 비회원 장바구니 삭제 - SessionId: {}, 삭제 항목 수: {}", 
+                    sessionId, count);
+        }
+        
+        return count;
     }
 
     private void validateSessionId(String sessionId) {
