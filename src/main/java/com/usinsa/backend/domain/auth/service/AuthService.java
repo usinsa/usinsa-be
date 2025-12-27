@@ -7,6 +7,7 @@ import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
+import com.usinsa.backend.global.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -53,7 +54,7 @@ public class AuthService {
         }
 
         // 디바이스 ID 추출
-        String deviceId = tokenService.resolveDeviceId(req);
+        String deviceId = CookieUtil.resolveDeviceId(req);
 
         // 회원 권한 로드 (실제 구현에 맞게 수정 필요)
         List<String> roles = List.of("ROLE_USER");
@@ -89,7 +90,7 @@ public class AuthService {
      * @return 새로운 TokenPair
      */
     public TokenPair refresh(AuthDto.RefreshReq body, HttpServletRequest req) {
-        String deviceId = tokenService.resolveDeviceId(req);
+        String deviceId = CookieUtil.resolveDeviceId(req);
         TokenPair tokenPair = tokenService.rotateTokens(body.getRefreshToken(), deviceId);
         
         log.info("Token refresh successful: deviceId={}", deviceId);
@@ -104,11 +105,38 @@ public class AuthService {
      * @param res HTTP 응답
      */
     public void logout(HttpServletRequest req, HttpServletResponse res) {
-        String accessToken = tokenService.resolveAccessToken(req);
+        String accessToken = CookieUtil.resolveAccessToken(req);
         
         if (accessToken != null) {
             tokenService.logout(accessToken);
             log.info("Logout successful");
         }
+    }
+
+    @Transactional
+    public void signup(AuthDto.SignupReq body) {
+
+        // 1️⃣ 비밀번호 확인
+        if (!body.getPassword().equals(body.getPasswordConfirm())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 2️⃣ 이메일 중복 검사
+        if (memberRepository.existsByEmail(body.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 3️⃣ Member 생성
+        Member member = Member.builder()
+                .usinaId(body.getEmail())                 // 서버에서 생성
+                .email(body.getEmail())
+                .password(passwordEncoder.encode(body.getPassword()))
+                .name(body.getName())
+                .nickname(body.getNickname())
+                .phone("000-0000-0000")                     // 임시 기본값 (NOT NULL 충족)
+                .isAdmin(false)
+                .build();
+
+        memberRepository.save(member);
     }
 }

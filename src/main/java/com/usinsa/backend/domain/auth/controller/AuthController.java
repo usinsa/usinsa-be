@@ -75,4 +75,13 @@ public class AuthController {
         authService.logout(req, res);
         return ResponseEntity.ok(RsData.of("S-1", "로그아웃 성공"));
     }
+
+    @PostMapping("/signup")
+    public ResponseEntity<RsData<Void>> signup(
+            @Valid @RequestBody AuthDto.SignupReq body
+    ) {
+        authService.signup(body);
+        return ResponseEntity.ok(RsData.of("S-1", "회원가입 성공"));
+    }
+
 }

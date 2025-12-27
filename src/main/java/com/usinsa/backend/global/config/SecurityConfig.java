@@ -65,9 +65,17 @@ public class SecurityConfig {
 
                         // 인증 불필요 경로
                         .requestMatchers(
-                                "/api/v1/members/login",
-                                "/api/v1/members/signup",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/logout",
+                                "/api/v1/auth/signup",
                                 "/api/v1/auth/refresh"
+                        ).permitAll()
+
+                        // 소셜 로그인 시작 URL 허용
+                        .requestMatchers(
+                                "/api/v1/auth/oauth/**",
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/code/**"
                         ).permitAll()
 
                         // GET 요청 공개 경로

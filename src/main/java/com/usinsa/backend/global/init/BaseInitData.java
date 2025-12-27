@@ -16,6 +16,7 @@ import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class BaseInitData implements CommandLineRunner {
     private final OrderRepository orderRepository;
     private final DeliveryRepository deliveryRepository;
     private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -42,7 +44,7 @@ public class BaseInitData implements CommandLineRunner {
         // 회원 생성
         Member member = Member.builder()
                 .usinaId("user01@example.com")
-                .password("1234")
+                .password(passwordEncoder.encode("1234"))
                 .name("홍길동")
                 .nickname("길동이")
                 .email("hong@test.com")

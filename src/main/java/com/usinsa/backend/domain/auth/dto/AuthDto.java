@@ -1,5 +1,8 @@
 package com.usinsa.backend.domain.auth.dto;
 
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 public class AuthDto {
@@ -24,6 +27,28 @@ public class AuthDto {
         private String refreshToken;
         private long accessTokenExp;
         private long refreshTokenExp;
+    }
+
+    @Getter
+    @Setter
+    public static class SignupReq {
+
+        @Email
+        @NotBlank
+        private String email;
+
+        @NotBlank
+        @Size(min = 8, max = 20)
+        private String password;
+
+        @NotBlank
+        private String passwordConfirm;
+
+        @NotBlank
+        private String name;
+
+        @NotBlank
+        private String nickname;
     }
 
     @Getter
