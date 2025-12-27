@@ -112,4 +112,31 @@ public class AuthService {
             log.info("Logout successful");
         }
     }
+
+    @Transactional
+    public void signup(AuthDto.SignupReq body) {
+
+        // 1️⃣ 비밀번호 확인
+        if (!body.getPassword().equals(body.getPasswordConfirm())) {
+            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+        }
+
+        // 2️⃣ 이메일 중복 검사
+        if (memberRepository.existsByEmail(body.getEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        // 3️⃣ Member 생성
+        Member member = Member.builder()
+                .usinaId(body.getEmail())                 // 서버에서 생성
+                .email(body.getEmail())
+                .password(passwordEncoder.encode(body.getPassword()))
+                .name(body.getName())
+                .nickname(body.getNickname())
+                .phone("000-0000-0000")                     // 임시 기본값 (NOT NULL 충족)
+                .isAdmin(false)
+                .build();
+
+        memberRepository.save(member);
+    }
 }

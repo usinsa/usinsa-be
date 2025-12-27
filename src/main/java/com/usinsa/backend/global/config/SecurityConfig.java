@@ -65,8 +65,9 @@ public class SecurityConfig {
 
                         // 인증 불필요 경로
                         .requestMatchers(
-                                "/api/v1/members/login",
-                                "/api/v1/members/signup",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/logout",
+                                "/api/v1/auth/signup",
                                 "/api/v1/auth/refresh"
                         ).permitAll()
 
