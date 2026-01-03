@@ -59,6 +59,10 @@ public class Product {
         }
     }
 
+    public void updateLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+
     // 연관관계 설정
     public void setCategory(Category category) {
         this.category = category;

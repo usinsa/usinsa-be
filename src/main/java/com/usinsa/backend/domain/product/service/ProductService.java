@@ -2,6 +2,7 @@ package com.usinsa.backend.domain.product.service;
 
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.category.repository.CategoryRepository;
+import com.usinsa.backend.domain.product.cache.ProductLikeCacheService;
 import com.usinsa.backend.domain.product.dto.ProductDto;
 import com.usinsa.backend.domain.product.dto.ProductOptionDto;
 import com.usinsa.backend.domain.product.entity.Product;
@@ -12,6 +13,7 @@ import com.usinsa.backend.domain.search.elastic.event.ProductDeletedEvent;
 import com.usinsa.backend.domain.search.elastic.event.ProductSavedEvent;
 import com.usinsa.backend.domain.search.elastic.event.ProductUpdatedEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,6 +31,8 @@ public class ProductService {
     private final CategoryRepository categoryRepository;
     private final ProductOptionRepository optionRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.usinsa.backend.domain.product.repository.ProductLikeRepository productLikeRepository;
+    private final ProductLikeCacheService likeCacheService;
 
     // 상품 등록
     public ProductDto.Response create(ProductDto.CreateReq request) {
@@ -68,6 +73,9 @@ public class ProductService {
 
         productRepository.delete(product);
         eventPublisher.publishEvent(new ProductDeletedEvent(productId));
+        
+        // 캐시 무효화
+        likeCacheService.invalidateProductCache(productId);
     }
 
     // 옵션 추가
@@ -127,15 +135,30 @@ public class ProductService {
                 .build();
     }
 
-    // Product의 DTO 변환
+    // Product의 DTO 변환 (Cache Aside Pattern)
     private ProductDto.Response toProductResDto(Product product) {
+        // 1. 캐시에서 좋아요 개수 조회 시도
+        Integer cachedLikeCount = likeCacheService.getLikeCount(product.getId());
+        
+        int likeCount;
+        if (cachedLikeCount != null) {
+            // 캐시 히트
+            likeCount = cachedLikeCount;
+            log.debug("상품 좋아요 개수 캐시 히트: productId={}, count={}", product.getId(), likeCount);
+        } else {
+            // 캐시 미스 - DB에서 조회 후 캐시 저장
+            likeCount = productLikeRepository.countByProductId(product.getId());
+            likeCacheService.setLikeCount(product.getId(), likeCount);
+            log.debug("상품 좋아요 개수 캐시 미스 - DB 조회: productId={}, count={}", product.getId(), likeCount);
+        }
+        
         return ProductDto.Response.builder()
                 .id(product.getId())
                 .categoryName(product.getCategory().getName())
                 .name(product.getName())
                 .brandName(product.getBrandName())
                 .price(product.getPrice())
-                .likeCount(product.getLikeCount())
+                .likeCount(likeCount)
                 .clickCount(product.getClickCount())
                 .build();
     }

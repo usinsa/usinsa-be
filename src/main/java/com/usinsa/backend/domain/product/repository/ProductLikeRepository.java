@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +19,7 @@ public interface ProductLikeRepository extends JpaRepository<ProductLike, Long> 
 
     @Query("SELECT COUNT(pl) FROM ProductLike pl WHERE pl.product.id = :productId")
     int countByProductId(@Param("productId") Long productId);
+
+    @Query("SELECT pl FROM ProductLike pl JOIN FETCH pl.product WHERE pl.member.id = :memberId")
+    List<ProductLike> findByMemberId(@Param("memberId") Long memberId);
 }
