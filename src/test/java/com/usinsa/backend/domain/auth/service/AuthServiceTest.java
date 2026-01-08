@@ -7,6 +7,7 @@ import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
+import com.usinsa.backend.global.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -24,6 +26,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * AuthService 단위 테스트
@@ -89,13 +92,17 @@ class AuthServiceTest {
                 .willReturn(Optional.of(testMember));
         given(passwordEncoder.matches(anyString(), anyString()))
                 .willReturn(true);
-        given(tokenService.resolveDeviceId(any()))
-                .willReturn("device-123");
         given(tokenService.issueTokens(anyLong(), anyString(), anyList(), anyString()))
                 .willReturn(testTokenPair);
 
         // when
-        AuthDto.LoginRes result = authService.login(loginReq, request, response);
+        AuthDto.LoginRes result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveDeviceId(any()))
+                    .thenReturn("device-123");
+            
+            result = authService.login(loginReq, request, response);
+        }
 
         // then
         assertThat(result).isNotNull();
@@ -109,11 +116,10 @@ class AuthServiceTest {
         // verify
         verify(memberRepository).findByEmail("test@example.com");
         verify(passwordEncoder).matches("password123", testMember.getPassword());
-        verify(tokenService).resolveDeviceId(request);
         verify(tokenService).issueTokens(
                 eq(1L),
                 eq("test@example.com"),
-                any(List.class),
+                anyList(),
                 eq("device-123")
         );
     }
@@ -169,20 +175,23 @@ class AuthServiceTest {
         AuthDto.RefreshReq refreshReq = new AuthDto.RefreshReq();
         refreshReq.setRefreshToken("old.refresh.token");
 
-        given(tokenService.resolveDeviceId(any()))
-                .willReturn("device-123");
         given(tokenService.rotateTokens(anyString(), anyString()))
                 .willReturn(testTokenPair);
 
         // when
-        TokenPair result = authService.refresh(refreshReq, request);
+        TokenPair result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveDeviceId(any()))
+                    .thenReturn("device-123");
+            
+            result = authService.refresh(refreshReq, request);
+        }
 
         // then
         assertThat(result).isNotNull();
         assertThat(result.getAccessToken()).isEqualTo("test.access.token");
         assertThat(result.getRefreshToken()).isEqualTo("test.refresh.token");
 
-        verify(tokenService).resolveDeviceId(request);
         verify(tokenService).rotateTokens("old.refresh.token", "device-123");
     }
 
@@ -190,30 +199,32 @@ class AuthServiceTest {
     @DisplayName("로그아웃 성공")
     void logout_Success() {
         // given
-        given(tokenService.resolveAccessToken(any()))
-                .willReturn("test.access.token");
         willDoNothing().given(tokenService).logout(anyString());
 
         // when
-        authService.logout(request, response);
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveAccessToken(any()))
+                    .thenReturn("test.access.token");
+            
+            authService.logout(request, response);
+        }
 
         // then
-        verify(tokenService).resolveAccessToken(request);
         verify(tokenService).logout("test.access.token");
     }
 
     @Test
     @DisplayName("로그아웃 - 토큰이 없는 경우")
     void logout_NoToken() {
-        // given
-        given(tokenService.resolveAccessToken(any()))
-                .willReturn(null);
-
-        // when
-        authService.logout(request, response);
+        // given & when
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveAccessToken(any()))
+                    .thenReturn(null);
+            
+            authService.logout(request, response);
+        }
 
         // then
-        verify(tokenService).resolveAccessToken(request);
         verify(tokenService, never()).logout(anyString());
     }
 }

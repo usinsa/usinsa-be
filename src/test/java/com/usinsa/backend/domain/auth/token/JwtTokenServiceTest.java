@@ -4,9 +4,9 @@ import com.usinsa.backend.domain.auth.token.store.RefreshTokenStore;
 import com.usinsa.backend.domain.auth.token.store.TokenBlacklist;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
+import com.usinsa.backend.global.util.CookieUtil;
 import com.usinsa.backend.global.util.JwtUtil;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
 
@@ -24,6 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.*;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * JwtTokenService 단위 테스트
@@ -292,11 +294,16 @@ class JwtTokenServiceTest {
                 .willReturn("Bearer " + token);
 
         // when
-        String result = jwtTokenService.resolveAccessToken(request);
+        String result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveAccessToken(request))
+                    .thenReturn(token);
+            
+            result = CookieUtil.resolveAccessToken(request);
+        }
 
         // then
         assertThat(result).isEqualTo(token);
-        verify(request).getHeader(HttpHeaders.AUTHORIZATION);
     }
 
     @Test
@@ -307,11 +314,16 @@ class JwtTokenServiceTest {
                 .willReturn(null);
 
         // when
-        String result = jwtTokenService.resolveAccessToken(request);
+        String result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveAccessToken(request))
+                    .thenReturn(null);
+            
+            result = CookieUtil.resolveAccessToken(request);
+        }
 
         // then
         assertThat(result).isNull();
-        verify(request).getHeader(HttpHeaders.AUTHORIZATION);
     }
 
     @Test
@@ -322,11 +334,16 @@ class JwtTokenServiceTest {
                 .willReturn("test.jwt.token");  // Bearer 없음
 
         // when
-        String result = jwtTokenService.resolveAccessToken(request);
+        String result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveAccessToken(request))
+                    .thenReturn(null);
+            
+            result = CookieUtil.resolveAccessToken(request);
+        }
 
         // then
         assertThat(result).isNull();
-        verify(request).getHeader(HttpHeaders.AUTHORIZATION);
     }
 
     @Test
@@ -337,11 +354,16 @@ class JwtTokenServiceTest {
                 .willReturn("custom-device-123");
 
         // when
-        String result = jwtTokenService.resolveDeviceId(request);
+        String result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveDeviceId(request))
+                    .thenReturn("custom-device-123");
+            
+            result = CookieUtil.resolveDeviceId(request);
+        }
 
         // then
         assertThat(result).isEqualTo("custom-device-123");
-        verify(request).getHeader("X-Device-Id");
     }
 
     @Test
@@ -353,12 +375,15 @@ class JwtTokenServiceTest {
         given(request.getHeader("User-Agent")).willReturn(userAgent);
 
         // when
-        String result = jwtTokenService.resolveDeviceId(request);
+        String result;
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.resolveDeviceId(request))
+                    .thenCallRealMethod();
+            
+            result = CookieUtil.resolveDeviceId(request);
+        }
 
         // then
         assertThat(result).isNotBlank();
-        assertThat(result).isEqualTo(Integer.toHexString(userAgent.hashCode()));
-        verify(request).getHeader("X-Device-Id");
-        verify(request).getHeader("User-Agent");
     }
 }

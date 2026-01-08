@@ -2,6 +2,8 @@ package com.usinsa.backend.domain.product.dto;
 
 import lombok.*;
 
+import java.util.List;
+
 public class ProductDto {
 
     @Getter
@@ -26,5 +28,6 @@ public class ProductDto {
         private Long price;
         private Integer likeCount;
         private Integer clickCount;
+        private List<ProductOptionDto.Response> options;
     }
 }

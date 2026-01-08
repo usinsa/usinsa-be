@@ -152,6 +152,11 @@ public class ProductService {
             log.debug("상품 좋아요 개수 캐시 미스 - DB 조회: productId={}, count={}", product.getId(), likeCount);
         }
         
+        // 옵션 정보 변환
+        List<ProductOptionDto.Response> options = product.getOptions().stream()
+                .map(this::toProductOptionResDto)
+                .collect(Collectors.toList());
+        
         return ProductDto.Response.builder()
                 .id(product.getId())
                 .categoryName(product.getCategory().getName())
@@ -160,6 +165,7 @@ public class ProductService {
                 .price(product.getPrice())
                 .likeCount(likeCount)
                 .clickCount(product.getClickCount())
+                .options(options)
                 .build();
     }
 
