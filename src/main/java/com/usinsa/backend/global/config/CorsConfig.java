@@ -46,7 +46,8 @@ public class CorsConfig {
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type",
-                "X-Requested-With"
+                "X-Requested-With",
+                "Set-Cookie"
         ));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

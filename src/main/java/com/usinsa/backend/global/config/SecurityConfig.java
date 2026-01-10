@@ -20,9 +20,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 /**
  * Spring Security 설정
- * - JWT 기반 인증/인가 설정
- * - Stateless 세션 관리
+ * - JWT 기반 인증/인가 설정 (회원 API)
+ * - 세션 기반 비회원 장바구니 지원
  * - CORS, CSRF 설정
+ * 
+ * 세션 정책:
+ * - JWT 인증: STATELESS로 동작 (서버 세션 불필요)
+ * - 비회원 장바구니: 세션 쿠키 사용 (SessionCreationPolicy.IF_REQUIRED)
  */
 @Configuration
 @EnableWebSecurity
@@ -46,9 +50,11 @@ public class SecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 
-                // 세션을 STATELESS로 설정 (JWT는 서버 세션을 사용하지 않음)
+                // 세션 관리 정책
+                // - JWT 인증은 STATELESS로 동작하지만, 비회원 장바구니를 위해 세션 생성 허용
+                // - IF_REQUIRED: 필요시에만 세션 생성 (비회원 장바구니 사용 시)
                 .sessionManagement(sm ->
-                        sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                        sm.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // 인증 실패 시 커스텀 예외 처리
                 .exceptionHandling(ex ->

@@ -43,11 +43,11 @@ public class BaseInitData implements CommandLineRunner {
     private void init() {
         // 회원 생성
         Member member = Member.builder()
-                .usinaId("user01@example.com")
+                .usinaId("1234@test.com")
+                .email("1234@test.com")
                 .password(passwordEncoder.encode("1234"))
                 .name("홍길동")
                 .nickname("길동이")
-                .email("hong@test.com")
                 .phone("010-1111-2222")
                 .isAdmin(false)
                 .build();
@@ -167,5 +167,124 @@ public class BaseInitData implements CommandLineRunner {
                 .deliveryStatus(DeliveryStatus.READY)
                 .build();
         deliveryRepository.save(delivery1);
+
+        // ===== 추가 상품 =====
+        Product paddingJacket = Product.builder()
+                .name("숏 패딩 자켓")
+                .brandName("유신사 스탠다드")
+                .price(129000L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(jacket)
+                .build();
+
+        Product longCoat = Product.builder()
+                .name("롱 울 코트")
+                .brandName("유신사 스탠다드")
+                .price(199000L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(coat)
+                .build();
+
+        Product oxfordShirt = Product.builder()
+                .name("옥스포드 셔츠")
+                .brandName("유신사 스탠다드")
+                .price(69000L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(shirt)
+                .build();
+
+        Product blackTee = Product.builder()
+                .name("블랙 티셔츠")
+                .brandName("유신사 스탠다드")
+                .price(19900L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(tShirt)
+                .build();
+
+        Product skinnyJeans = Product.builder()
+                .name("스키니 진")
+                .brandName("유신사 스탠다드")
+                .price(109000L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(jeans)
+                .build();
+
+        Product graySlacks = Product.builder()
+                .name("그레이 슬랙스")
+                .brandName("유신사 스탠다드")
+                .price(79000L)
+                .likeCount(0)
+                .clickCount(0)
+                .category(slacks)
+                .build();
+
+        productRepository.saveAll(List.of(
+                paddingJacket, longCoat, oxfordShirt,
+                blackTee, skinnyJeans, graySlacks
+        ));
+
+        // ===== 추가 상품 옵션 =====
+        List<ProductOption> extraOptions = List.of(
+                // 숏 패딩 자켓
+                ProductOption.builder().product(paddingJacket).optionName("S").stock(20).build(),
+                ProductOption.builder().product(paddingJacket).optionName("M").stock(30).build(),
+                ProductOption.builder().product(paddingJacket).optionName("L").stock(25).build(),
+
+                // 롱 울 코트
+                ProductOption.builder().product(longCoat).optionName("M").stock(15).build(),
+                ProductOption.builder().product(longCoat).optionName("L").stock(10).build(),
+
+                // 옥스포드 셔츠
+                ProductOption.builder().product(oxfordShirt).optionName("M").stock(40).build(),
+                ProductOption.builder().product(oxfordShirt).optionName("L").stock(35).build(),
+                ProductOption.builder().product(oxfordShirt).optionName("XL").stock(20).build(),
+
+                // 블랙 티셔츠
+                ProductOption.builder().product(blackTee).optionName("S").stock(80).build(),
+                ProductOption.builder().product(blackTee).optionName("M").stock(100).build(),
+                ProductOption.builder().product(blackTee).optionName("L").stock(70).build(),
+
+                // 스키니 진
+                ProductOption.builder().product(skinnyJeans).optionName("30").stock(25).build(),
+                ProductOption.builder().product(skinnyJeans).optionName("32").stock(30).build(),
+                ProductOption.builder().product(skinnyJeans).optionName("34").stock(20).build(),
+
+                // 그레이 슬랙스
+                ProductOption.builder().product(graySlacks).optionName("30").stock(20).build(),
+                ProductOption.builder().product(graySlacks).optionName("32").stock(25).build(),
+                ProductOption.builder().product(graySlacks).optionName("34").stock(15).build(),
+                ProductOption.builder().product(leatherJacket).optionName("S").stock(15).build(),
+                ProductOption.builder().product(leatherJacket).optionName("XL").stock(10).build(),
+
+                // 트렌치 코트 (옵션 신규 추가)
+                ProductOption.builder().product(trenchCoat).optionName("M").stock(20).build(),
+                ProductOption.builder().product(trenchCoat).optionName("L").stock(15).build(),
+
+                // 베이직 셔츠 (옵션 신규 추가)
+                ProductOption.builder().product(basicShirt).optionName("S").stock(40).build(),
+                ProductOption.builder().product(basicShirt).optionName("M").stock(50).build(),
+                ProductOption.builder().product(basicShirt).optionName("L").stock(35).build(),
+
+                // 화이트 티셔츠 (기존: M → 추가)
+                ProductOption.builder().product(whiteTee).optionName("S").stock(80).build(),
+                ProductOption.builder().product(whiteTee).optionName("L").stock(70).build(),
+                ProductOption.builder().product(whiteTee).optionName("XL").stock(50).build(),
+
+                // 블루 진 (기존: 32 → 추가)
+                ProductOption.builder().product(blueJeans).optionName("30").stock(20).build(),
+                ProductOption.builder().product(blueJeans).optionName("34").stock(15).build(),
+
+                // 블랙 슬랙스 (옵션 신규 추가)
+                ProductOption.builder().product(blackSlacks).optionName("30").stock(25).build(),
+                ProductOption.builder().product(blackSlacks).optionName("32").stock(30).build(),
+                ProductOption.builder().product(blackSlacks).optionName("34").stock(20).build()
+        );
+
+        optionRepository.saveAll(extraOptions);
     }
 }
