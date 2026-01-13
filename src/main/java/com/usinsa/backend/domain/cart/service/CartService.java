@@ -8,7 +8,8 @@ import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,9 +33,9 @@ public class CartService {
      */
     public CartDto.Response create(CartDto.CreateReq request) {
         Member member = memberRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         ProductOption productOption = productOptionRepository.findById(request.getProductOptionId())
-                .orElseThrow(() -> new EntityNotFoundException("상품 옵션이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
 
         // 동일 상품이 이미 장바구니에 있는지 확인
         Optional<Cart> existingCart = cartRepository.findByMemberAndProductOption(member, productOption);
@@ -43,7 +44,7 @@ public class CartService {
             cart.setCount(cart.getCount() + request.getCount());
             // 생성 후에는 상품 정보와 함께 조회
             Cart updated = cartRepository.findByIdWithProduct(cart.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
             return toResponseDto(updated);
         }
 
@@ -56,7 +57,7 @@ public class CartService {
 
         // 저장 후 상품 정보와 함께 조회
         Cart result = cartRepository.findByIdWithProduct(saved.getId())
-                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
         return toResponseDto(result);
     }
 
@@ -67,7 +68,7 @@ public class CartService {
         validateSessionId(sessionId);
 
         ProductOption productOption = productOptionRepository.findById(request.getProductOptionId())
-                .orElseThrow(() -> new EntityNotFoundException("상품 옵션이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
 
         // 동일 상품이 세션 장바구니에 있는지 확인
         Optional<Cart> existingCart = cartRepository.findBySessionIdAndProductOption(sessionId, productOption);
@@ -79,7 +80,7 @@ public class CartService {
 
             // 수정 후 상품 정보와 함께 조회
             Cart updated = cartRepository.findByIdWithProduct(cart.getId())
-                    .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
             return toResponseDto(updated);
         }
 
@@ -93,14 +94,14 @@ public class CartService {
 
         // 저장 후 상품 정보와 함께 조회
         Cart result = cartRepository.findByIdWithProduct(saved.getId())
-                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
         return toResponseDto(result);
     }
 
     @Transactional(readOnly = true)
     public CartDto.Response findById(Long id) {
         Cart cart = cartRepository.findByIdWithProduct(id)
-                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
         return toResponseDto(cart);
     }
 
@@ -117,7 +118,7 @@ public class CartService {
     @Transactional(readOnly = true)
     public List<CartDto.Response> findByMemberId(Long memberId) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
         return cartRepository.findByMemberWithProduct(member).stream()
                 .map(this::toResponseDto)
                 .toList();
@@ -136,7 +137,7 @@ public class CartService {
 
     public CartDto.Response update(Long id, CartDto.UpdateReq request) {
         Cart cart = cartRepository.findByIdWithProduct(id)
-                .orElseThrow(() -> new EntityNotFoundException("장바구니가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CART_NOT_FOUND));
 
         cart.setCount(request.getCount());
         return toResponseDto(cart);
@@ -144,7 +145,7 @@ public class CartService {
 
     public void delete(Long id) {
         if (!cartRepository.existsById(id)) {
-            throw new EntityNotFoundException("장바구니가 존재하지 않습니다.");
+            throw new CustomException(ErrorCode.CART_NOT_FOUND);
         }
         cartRepository.deleteById(id);
     }
@@ -156,7 +157,7 @@ public class CartService {
         validateSessionId(sessionId);
 
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         // 비회원 장바구니 항목 조회 (간단 조회)
         List<Cart> guestCarts = cartRepository.findBySessionId(sessionId);
@@ -231,7 +232,7 @@ public class CartService {
 
     private void validateSessionId(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
-            throw new IllegalArgumentException("세션 ID가 필요합니다.");
+            throw new CustomException(ErrorCode.SESSION_ID_REQUIRED);
         }
     }
 

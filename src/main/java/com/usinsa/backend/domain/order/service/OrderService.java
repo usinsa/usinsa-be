@@ -8,6 +8,8 @@ import com.usinsa.backend.domain.order.dto.OrderDto;
 import com.usinsa.backend.domain.order.entity.Order;
 import com.usinsa.backend.domain.order.entity.OrderStatus;
 import com.usinsa.backend.domain.order.repository.OrderRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import lombok.*;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +29,7 @@ public class OrderService {
     // 주문 생성
     public OrderDto.Response create(OrderDto.CreateReq request) {
         Member member = memberRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         Order order = toEntity(request, member);
         Order savedOrder = orderRepository.save(order);
@@ -38,7 +40,7 @@ public class OrderService {
     // 주문 단건 조회
     public OrderDto.Response findById(Long orderId) {
         Order order = orderRepository.findWithMemberAndDeliveryById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("주문 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
         return toResDto(order);
     }
 
@@ -52,7 +54,7 @@ public class OrderService {
     // 주문 수정
     public OrderDto.Response update(Long orderId, OrderDto.UpdateReq request) {
         Order order = orderRepository.findWithMemberAndDeliveryById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         order.setReceiverAddress(request.getReceiverAddress());
         order.setReceiverName(request.getReceiverName());
@@ -64,7 +66,15 @@ public class OrderService {
     // 주문 취소
     public OrderDto.Response cancel(Long orderId) {
         Order order = orderRepository.findWithMemberAndDeliveryById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new CustomException(ErrorCode.ORDER_ALREADY_CANCELLED);
+        }
+
+        if (order.getStatus() != OrderStatus.CREATED && order.getStatus() != OrderStatus.CANCELLED) {
+            throw new CustomException(ErrorCode.ORDER_CANNOT_CANCEL);
+        }
 
         order.setStatus(OrderStatus.CANCELLED);
         return toResDto(order);

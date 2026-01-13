@@ -118,12 +118,12 @@ public class AuthService {
 
         // 1️⃣ 비밀번호 확인
         if (!body.getPassword().equals(body.getPasswordConfirm())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new CustomException(ErrorCode.PASSWORD_MISMATCH);
         }
 
         // 2️⃣ 이메일 중복 검사
         if (memberRepository.existsByEmail(body.getEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         // 3️⃣ Member 생성

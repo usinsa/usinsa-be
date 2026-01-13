@@ -4,6 +4,8 @@ import com.usinsa.backend.domain.category.dto.CategoryDto;
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.category.repository.CategoryRepository;
 import com.usinsa.backend.domain.product.entity.Product;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +26,7 @@ public class CategoryService {
 
         if (req.getParentId() != null) {
             parent = categoryRepository.findById(req.getParentId())
-                    .orElseThrow(() -> new IllegalArgumentException("상위 카테고리를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
         }
 
         Category category = Category.builder()
@@ -44,7 +46,7 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public CategoryDto.Response findById(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
         return toResponse(category);
     }
 
@@ -60,7 +62,7 @@ public class CategoryService {
     @Transactional
     public CategoryDto.Response update(Long id, String newName) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
 
         category.setName(newName);
 
@@ -72,7 +74,7 @@ public class CategoryService {
     @Transactional
     public void delete(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
         categoryRepository.delete(category);
     }
 

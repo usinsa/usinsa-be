@@ -6,6 +6,8 @@ import com.usinsa.backend.domain.delivery.entity.DeliveryStatus;
 import com.usinsa.backend.domain.delivery.repository.DeliveryRepository;
 import com.usinsa.backend.domain.order.entity.Order;
 import com.usinsa.backend.domain.order.repository.OrderRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,7 +25,7 @@ public class DeliveryService {
 
     public DeliveryDto.Response create(DeliveryDto.CreateReq request) {
         Order order = orderRepository.findById(request.getOrderId())
-                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
         Delivery delivery = toEntity(request, order);
         Delivery saved = deliveryRepository.save(delivery);
@@ -33,7 +35,7 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public DeliveryDto.Response findById(Long deliveryId) {
         Delivery delivery = deliveryRepository.findWithOrderById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_NOT_FOUND));
         return toResDto(delivery);
     }
 
@@ -46,7 +48,7 @@ public class DeliveryService {
 
     public DeliveryDto.Response update(Long deliveryId, DeliveryDto.CreateReq request) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_NOT_FOUND));
 
         if (request.getTrackingNumber() != null)
             delivery.updateTrackingNumber(request.getTrackingNumber());
@@ -59,7 +61,7 @@ public class DeliveryService {
 
     public void delete(Long deliveryId) {
         Delivery delivery = deliveryRepository.findById(deliveryId)
-                .orElseThrow(() -> new IllegalArgumentException("배송 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_NOT_FOUND));
         deliveryRepository.delete(delivery);
     }
 

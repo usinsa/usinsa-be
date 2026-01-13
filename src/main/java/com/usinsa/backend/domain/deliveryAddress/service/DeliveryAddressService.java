@@ -5,7 +5,8 @@ import com.usinsa.backend.domain.deliveryAddress.entity.DeliveryAddress;
 import com.usinsa.backend.domain.deliveryAddress.repository.DeliveryAddressRepository;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +23,7 @@ public class DeliveryAddressService {
 
     public DeliveryAddressDto.Response create(DeliveryAddressDto.CreateReq request) {
         Member member = memberRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         DeliveryAddress deliveryAddress = toEntity(request, member);
         DeliveryAddress saved = deliveryAddressRepository.save(deliveryAddress);
@@ -32,7 +33,7 @@ public class DeliveryAddressService {
     @Transactional(readOnly = true)
     public DeliveryAddressDto.Response findById(Long id) {
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findWithMemberById(id)
-                .orElseThrow(() -> new EntityNotFoundException("배송지가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
         return toResDto(deliveryAddress);
     }
 
@@ -45,7 +46,7 @@ public class DeliveryAddressService {
 
     public DeliveryAddressDto.Response update(Long id, DeliveryAddressDto.UpdateReq request) {
         DeliveryAddress deliveryAddress = deliveryAddressRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("배송지가 존재하지 않습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.DELIVERY_ADDRESS_NOT_FOUND));
 
         deliveryAddress.update(request.getReceiverName(), request.getReceiverPhone(), request.getReceiverAddress());
         return toResDto(deliveryAddress);
@@ -53,7 +54,7 @@ public class DeliveryAddressService {
 
     public void delete(Long id) {
         if (!deliveryAddressRepository.existsById(id)) {
-            throw new EntityNotFoundException("배송지가 존재하지 않습니다.");
+            throw new CustomException(ErrorCode.DELIVERY_ADDRESS_NOT_FOUND);
         }
         deliveryAddressRepository.deleteById(id);
     }

@@ -3,6 +3,8 @@ package com.usinsa.backend.domain.auth.oauth;
 import com.usinsa.backend.domain.auth.oauth.provider.GoogleUserInfo;
 import com.usinsa.backend.domain.auth.oauth.provider.KakaoUserInfo;
 import com.usinsa.backend.domain.auth.oauth.provider.NaverUserInfo;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Map;
@@ -14,7 +16,7 @@ public class OAuth2UserInfoFactory {
             case "google" -> new GoogleUserInfo(attributes);
             case "naver" -> new NaverUserInfo(attributes);
             case "kakao" -> new KakaoUserInfo(attributes);
-            default -> throw new IllegalArgumentException("Invalid Provider Type.");
+            default -> throw new CustomException(ErrorCode.INVALID_PROVIDER_TYPE);
         };
     }
 }

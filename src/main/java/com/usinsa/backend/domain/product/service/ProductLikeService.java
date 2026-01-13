@@ -8,6 +8,8 @@ import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductLike;
 import com.usinsa.backend.domain.product.repository.ProductLikeRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,10 +38,10 @@ public class ProductLikeService {
     @Transactional
     public ProductLikeDto.Response addLike(Long memberId, Long productId) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         // 1. 캐시에서 중복 체크 (Cache Aside)
         Boolean cachedLiked = cacheService.isMemberLikedProduct(memberId, productId);
@@ -50,11 +52,11 @@ public class ProductLikeService {
             if (dbLiked) {
                 // 캐시 갱신 후 예외 발생
                 cacheService.addMemberLike(memberId, productId);
-                throw new IllegalStateException("이미 좋아요를 누른 상품입니다.");
+                throw new CustomException(ErrorCode.PRODUCT_ALREADY_LIKED);
             }
         } else if (cachedLiked) {
             // 캐시 히트 - 이미 좋아요한 상태
-            throw new IllegalStateException("이미 좋아요를 누른 상품입니다.");
+            throw new CustomException(ErrorCode.PRODUCT_ALREADY_LIKED);
         }
 
         // 2. DB에 저장
@@ -104,18 +106,18 @@ public class ProductLikeService {
         if (cachedLiked == null) {
             // 캐시 미스 - DB에서 조회
             productLike = productLikeRepository.findByMemberIdAndProductId(memberId, productId)
-                    .orElseThrow(() -> new IllegalArgumentException("좋아요를 누르지 않은 상품입니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_LIKE_NOT_FOUND));
         } else if (!cachedLiked) {
             // 캐시 히트 - 좋아요하지 않은 상태
-            throw new IllegalArgumentException("좋아요를 누르지 않은 상품입니다.");
+            throw new CustomException(ErrorCode.PRODUCT_LIKE_NOT_FOUND);
         } else {
             // 캐시 히트 - 좋아요한 상태, DB에서 삭제 대상 조회
             productLike = productLikeRepository.findByMemberIdAndProductId(memberId, productId)
-                    .orElseThrow(() -> new IllegalArgumentException("좋아요를 누르지 않은 상품입니다."));
+                    .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_LIKE_NOT_FOUND));
         }
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         // 2. DB에서 삭제
         productLikeRepository.delete(productLike);

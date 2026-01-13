@@ -12,6 +12,8 @@ import com.usinsa.backend.domain.product.repository.ProductRepository;
 import com.usinsa.backend.domain.search.elastic.event.ProductDeletedEvent;
 import com.usinsa.backend.domain.search.elastic.event.ProductSavedEvent;
 import com.usinsa.backend.domain.search.elastic.event.ProductUpdatedEvent;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -37,7 +39,7 @@ public class ProductService {
     // 상품 등록
     public ProductDto.Response create(ProductDto.CreateReq request) {
         Category category = categoryRepository.findById(request.getCategoryId())
-                .orElseThrow(() -> new IllegalArgumentException("카테고리를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.CATEGORY_NOT_FOUND));
 
         Product product = toEntity(request, category);
         Product saved = productRepository.save(product);
@@ -52,7 +54,7 @@ public class ProductService {
     public ProductDto.Response update(Long productId, ProductDto.CreateReq request) {
 
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         // 업데이트
         product.update(
@@ -69,7 +71,7 @@ public class ProductService {
     // 상품 삭제
     public void delete(Long productId) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         productRepository.delete(product);
         eventPublisher.publishEvent(new ProductDeletedEvent(productId));
@@ -81,7 +83,7 @@ public class ProductService {
     // 옵션 추가
     public ProductOptionDto.Response addOption(Long productId, ProductOptionDto.CreateReq request) {
         Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         ProductOption option = toEntity(request, product);
         ProductOption saved = optionRepository.save(option);
@@ -93,7 +95,7 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductDto.Response findById(Long productId) {
         Product product = productRepository.findWithCategoryAndOptionsById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
         return toProductResDto(product);
     }
 
