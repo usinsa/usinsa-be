@@ -72,12 +72,44 @@ public class OrderService {
             throw new CustomException(ErrorCode.ORDER_ALREADY_CANCELLED);
         }
 
-        if (order.getStatus() != OrderStatus.CREATED && order.getStatus() != OrderStatus.CANCELLED) {
+        if (order.getStatus() != OrderStatus.CREATED && order.getStatus() != OrderStatus.PAYMENT_READY) {
             throw new CustomException(ErrorCode.ORDER_CANNOT_CANCEL);
         }
 
         order.setStatus(OrderStatus.CANCELLED);
         return toResDto(order);
+    }
+
+    // 결제 준비 상태로 변경
+    public void updateToPaymentReady(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getStatus() != OrderStatus.CREATED) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        order.setStatus(OrderStatus.PAYMENT_READY);
+    }
+
+    // 결제 완료 상태로 변경
+    public void updateToPaymentCompleted(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (order.getStatus() != OrderStatus.PAYMENT_READY) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+    }
+
+    // 주문 취소 (결제 취소용)
+    public void updateToCancelled(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.setStatus(OrderStatus.CANCELLED);
     }
 
     // DTO -> 객체 변환

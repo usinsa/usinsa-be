@@ -53,6 +53,13 @@ public enum ErrorCode {
     DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_001", "배송 정보를 찾을 수 없습니다."),
     DELIVERY_ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY_002", "배송지를 찾을 수 없습니다."),
     
+    // 결제 관련 에러
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "결제 정보를 찾을 수 없습니다."),
+    PAYMENT_TID_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_002", "결제 TID를 찾을 수 없습니다."),
+    PAYMENT_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "PAYMENT_003", "이미 완료된 결제입니다."),
+    PAYMENT_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT_004", "결제 처리에 실패했습니다."),
+    PAYMENT_CANCEL_FAILED(HttpStatus.BAD_REQUEST, "PAYMENT_005", "결제 취소에 실패했습니다."),
+    
     // 카테고리 관련 에러
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY_001", "카테고리를 찾을 수 없습니다."),
     
