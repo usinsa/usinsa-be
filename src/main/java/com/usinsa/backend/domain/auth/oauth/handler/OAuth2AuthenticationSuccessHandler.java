@@ -2,11 +2,8 @@ package com.usinsa.backend.domain.auth.oauth.handler;
 
 import com.usinsa.backend.domain.auth.oauth.config.OAuth2Properties;
 import com.usinsa.backend.domain.auth.oauth.service.PrincipalDetails;
-import com.usinsa.backend.domain.auth.token.JwtProperties;
-import com.usinsa.backend.domain.auth.token.JwtTokenService;
-import com.usinsa.backend.domain.auth.token.TokenPair;
+import com.usinsa.backend.domain.auth.service.AuthService;
 import com.usinsa.backend.domain.member.entity.Member;
-import com.usinsa.backend.global.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -22,36 +19,23 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final JwtTokenService jwtTokenService;
+    private final AuthService authService;
     private final OAuth2Properties oAuth2Properties;
-    private final JwtProperties jwtProperties;
-
 
     @Override
-    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
+    public void onAuthenticationSuccess(HttpServletRequest request,
+                                        HttpServletResponse response,
                                         Authentication authentication) throws IOException {
-        PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-        Member member = principalDetails.getMember();
+        Member member = ((PrincipalDetails) authentication.getPrincipal()).getMember();
+        String provider = member.getOauthProvider() != null ? member.getOauthProvider() : "unknown";
 
-        log.info("=== OAuth 로그인 성공 ===");
-        log.info("OAuth Provider: {}", member.getOauthProvider() != null ? member.getOauthProvider() : "LOCAL");
-        log.info("Member ID: {}", member.getId());
-        log.info("Email: {}", member.getEmail());
+        // JWT 발급 + HttpOnly 쿠키 기록 (AuthService로 일원화)
+        authService.issueAndWriteCookies(member, request, response);
 
-        // JWT 토큰 발급
-        TokenPair tokenPair = jwtTokenService.generateTokenPair(member);
+        log.info("OAuth 로그인 성공: provider={}, memberId={}", provider, member.getId());
 
-        log.info("JWT 토큰 발급 완료");
-        log.info("Access Token: {}...", tokenPair.getAccessToken().substring(0, Math.min(20, tokenPair.getAccessToken().length())));
-
-        // FE로 리다이렉트 (토큰을 HttpOnly 쿠키로 전달)
-        CookieUtil.addCookie(response, CookieUtil.ACCESS_TOKEN, tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds());
-        CookieUtil.addCookie(response, CookieUtil.REFRESH_TOKEN, tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds());
-
-        String targetUrl = oAuth2Properties.getRedirectUrl();
-
-        log.info("FE로 리다이렉트: {}", targetUrl);
-
+        // 쿠키가 브라우저에 세팅된 상태로 FE 콜백 페이지로 리다이렉트
+        String targetUrl = oAuth2Properties.getCallbackBaseUrl() + "/" + provider;
         getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

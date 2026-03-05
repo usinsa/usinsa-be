@@ -10,8 +10,14 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import java.util.Map;
 
 public class OAuth2UserInfoFactory {
+
+    // Spring Security OAuth2 자동 처리 흐름용 (OAuth2User 기반)
     public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, OAuth2User oAuth2User) {
-        Map<String, Object> attributes = oAuth2User.getAttributes();
+        return getOAuth2UserInfo(registrationId, oAuth2User.getAttributes());
+    }
+
+    // Authorization Code 수동 처리 흐름용 (Map 기반)
+    public static OAuth2UserInfo getOAuth2UserInfo(String registrationId, Map<String, Object> attributes) {
         return switch (registrationId.toLowerCase()) {
             case "google" -> new GoogleUserInfo(attributes);
             case "naver" -> new NaverUserInfo(attributes);

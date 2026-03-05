@@ -4,19 +4,17 @@ import com.usinsa.backend.domain.auth.dto.AuthDto;
 import com.usinsa.backend.domain.auth.service.AuthService;
 import com.usinsa.backend.domain.auth.token.TokenPair;
 import com.usinsa.backend.global.dto.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 인증 관련 API 컨트롤러
- * - 로그인
- * - 토큰 갱신
- * - 로그아웃
- */
+@Tag(name = "Auth", description = "인증 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
@@ -24,64 +22,40 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * 로그인 API
-     *
-     * @param reqBody 로그인 요청 (이메일, 비밀번호)
-     * @param req     HTTP 요청
-     * @param res     HTTP 응답
-     * @return 로그인 응답 (회원 정보 + JWT 토큰)
-     */
+    @Operation(summary = "일반 로그인")
     @PostMapping("/login")
     public ResponseEntity<RsData<AuthDto.LoginRes>> login(
-            @Valid @RequestBody AuthDto.LoginReq reqBody,
-            HttpServletRequest req,
-            HttpServletResponse res) {
-        
-        AuthDto.LoginRes loginRes = authService.login(reqBody, req, res);
-        return ResponseEntity.ok(RsData.of("S-1", "로그인 성공", loginRes));
+            @Valid @RequestBody AuthDto.LoginReq body,
+            HttpServletRequest req, HttpServletResponse res) {
+        return ResponseEntity.ok(RsData.of("S-1", "로그인 성공", authService.login(body, req, res)));
     }
 
-    /**
-     * 토큰 갱신 API
-     * Refresh Token을 이용하여 새로운 Access Token 발급
-     *
-     * @param body 토큰 갱신 요청 (Refresh Token)
-     * @param req  HTTP 요청
-     * @return 새로운 TokenPair
-     */
+    @Operation(summary = "토큰 갱신 (Refresh 쿠키 사용)")
     @PostMapping("/refresh")
     public ResponseEntity<RsData<TokenPair>> refresh(
-            @Valid @RequestBody AuthDto.RefreshReq body,
-            HttpServletRequest req) {
-        
-        TokenPair tokenPair = authService.refresh(body, req);
-        return ResponseEntity.ok(RsData.of("S-1", "토큰 갱신 성공", tokenPair));
+            HttpServletRequest req, HttpServletResponse res) {
+        return ResponseEntity.ok(RsData.of("S-1", "토큰 갱신 성공", authService.refresh(req, res)));
     }
 
-    /**
-     * 로그아웃 API
-     * Access Token을 블랙리스트에 등록
-     *
-     * @param req HTTP 요청
-     * @param res HTTP 응답
-     * @return 204 No Content
-     */
+    @Operation(summary = "로그아웃")
     @PostMapping("/logout")
     public ResponseEntity<RsData<Void>> logout(
-            HttpServletRequest req,
-            HttpServletResponse res) {
-        
+            HttpServletRequest req, HttpServletResponse res) {
         authService.logout(req, res);
         return ResponseEntity.ok(RsData.of("S-1", "로그아웃 성공"));
     }
 
+    @Operation(summary = "회원가입")
     @PostMapping("/signup")
-    public ResponseEntity<RsData<Void>> signup(
-            @Valid @RequestBody AuthDto.SignupReq body
-    ) {
+    public ResponseEntity<RsData<Void>> signup(@Valid @RequestBody AuthDto.SignupReq body) {
         authService.signup(body);
         return ResponseEntity.ok(RsData.of("S-1", "회원가입 성공"));
     }
 
+    @Operation(summary = "내 정보 조회 (쿠키 인증 상태 확인)")
+    @GetMapping("/me")
+    public ResponseEntity<RsData<AuthDto.MeRes>> me(
+            @AuthenticationPrincipal Long memberId) {
+        return ResponseEntity.ok(RsData.of("S-1", "조회 성공", authService.me(memberId)));
+    }
 }

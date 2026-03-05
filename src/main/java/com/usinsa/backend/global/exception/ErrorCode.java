@@ -62,7 +62,11 @@ public enum ErrorCode {
     
     // 카테고리 관련 에러
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "CATEGORY_001", "카테고리를 찾을 수 없습니다."),
-    
+
+    // OAuth 관련 에러
+    OAUTH_TOKEN_EXCHANGE_FAILED(HttpStatus.BAD_GATEWAY, "OAUTH_001", "OAuth 토큰 교환에 실패했습니다."),
+    OAUTH_USERINFO_FETCH_FAILED(HttpStatus.BAD_GATEWAY, "OAUTH_002", "OAuth 사용자 정보 조회에 실패했습니다."),
+
     // 공통 에러
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_001", "서버 내부 오류가 발생했습니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON_002", "잘못된 입력값입니다."),

@@ -56,4 +56,16 @@ public class AuthDto {
     public static class RefreshReq {
         private String refreshToken;
     }
+
+    /** 쿠키 기반 인증 상태 확인용 */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MeRes {
+        private Long memberId;
+        private String email;
+        private String name;
+        private String nickname;
+    }
 }

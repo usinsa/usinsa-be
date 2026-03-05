@@ -4,92 +4,87 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.util.SerializationUtils;
 
-import java.util.Base64;
 import java.util.Objects;
 import java.util.Optional;
 
 public class CookieUtil {
 
-    public static final String ACCESS_TOKEN = "accessToken";
+    public static final String ACCESS_TOKEN  = "accessToken";
     public static final String REFRESH_TOKEN = "refreshToken";
+
+    // ── 조회 ──────────────────────────────────────────────────────────
 
     public static Optional<Cookie> getCookie(HttpServletRequest request, String name) {
         Cookie[] cookies = request.getCookies();
-
-        if (cookies != null && cookies.length > 0) {
-            for (Cookie cookie : cookies) {
-                if (name.equals(cookie.getName())) {
-                    return Optional.of(cookie);
-                }
-            }
+        if (cookies == null) return Optional.empty();
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())) return Optional.of(cookie);
         }
         return Optional.empty();
     }
 
-    public static void addCookie(HttpServletResponse response, String name, String value, int maxAge) {
-        Cookie cookie = new Cookie(name, value);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setMaxAge(maxAge);
-        response.addCookie(cookie);
-    }
-
-    public static void deleteCookie(HttpServletRequest request, HttpServletResponse response, String name) {
-        Cookie[] cookies = request.getCookies();
-
-        if (cookies != null && cookies.length > 0) {
-            for (Cookie cookie : cookies) {
-                if (name.equals(cookie.getName())) {
-                    cookie.setValue("");
-                    cookie.setPath("/");
-                    cookie.setMaxAge(0);
-                    response.addCookie(cookie);
-                }
-            }
-        }
-    }
-
-    public static String serialize(Object obj) {
-        return Base64.getUrlEncoder()
-                .encodeToString(SerializationUtils.serialize(obj));
-    }
-
-    public static <T> T deserialize(Cookie cookie, Class<T> cls) {
-        return cls.cast(
-                SerializationUtils.deserialize(
-                        Base64.getUrlDecoder().decode(cookie.getValue())
-                )
-        );
-    }
-
     public static String resolveAccessToken(HttpServletRequest request) {
-        // 1. 쿠키에서 토큰 확인
-        Optional<String> cookieToken = getCookie(request, ACCESS_TOKEN)
-                .map(Cookie::getValue);
-
-        if (cookieToken.isPresent()) {
-            return cookieToken.get();
-        }
-
-        // 2. 헤더에서 토큰 확인 (Bearer)
-        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-
-        return null;
+        // 쿠키 우선, 없으면 Authorization 헤더
+        return getCookie(request, ACCESS_TOKEN)
+                .map(Cookie::getValue)
+                .orElseGet(() -> {
+                    String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+                    return (header != null && header.startsWith("Bearer "))
+                            ? header.substring(7) : null;
+                });
     }
 
     public static String resolveDeviceId(HttpServletRequest request) {
         String deviceId = request.getHeader("X-Device-Id");
-        if (deviceId != null && !deviceId.isBlank()) {
-            return deviceId;
-        }
-
-        // Device ID가 없으면 User-Agent 해시값 사용
+        if (deviceId != null && !deviceId.isBlank()) return deviceId;
         String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
         return Integer.toHexString(Objects.hash(userAgent));
+    }
+
+    // ── 발급 ──────────────────────────────────────────────────────────
+
+    /**
+     * HttpOnly 쿠키 추가
+     *
+     * @param secure true = HTTPS 전용 (운영), false = HTTP 허용 (개발)
+     */
+    public static void addCookie(HttpServletResponse response,
+                                  String name, String value,
+                                  int maxAgeSeconds, boolean secure) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(secure);
+        cookie.setMaxAge(maxAgeSeconds);
+        response.addCookie(cookie);
+    }
+
+    /** 개발 편의용 오버로드 (secure=false) */
+    public static void addCookie(HttpServletResponse response,
+                                  String name, String value, int maxAgeSeconds) {
+        addCookie(response, name, value, maxAgeSeconds, false);
+    }
+
+    // ── 삭제 ──────────────────────────────────────────────────────────
+
+    public static void deleteCookie(HttpServletRequest request,
+                                     HttpServletResponse response, String name) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) return;
+        for (Cookie cookie : cookies) {
+            if (name.equals(cookie.getName())) {
+                cookie.setValue("");
+                cookie.setPath("/");
+                cookie.setMaxAge(0);
+                response.addCookie(cookie);
+            }
+        }
+    }
+
+    /** Access/Refresh 토큰 쿠키 일괄 삭제 */
+    public static void clearTokenCookies(HttpServletRequest request, HttpServletResponse response) {
+        deleteCookie(request, response, ACCESS_TOKEN);
+        deleteCookie(request, response, REFRESH_TOKEN);
     }
 }
