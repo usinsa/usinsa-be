@@ -4,12 +4,6 @@ spring:
     driver-class-name: org.h2.Driver
     # url, username, password는 application-secret.yml의 dev 프로파일에서 가져옵니다
 
-  # 세션 설정
-  session:
-    timeout: 30m  # 세션 타임아웃: 30분 (비회원 장바구니 보관 기간)
-    # 프로덕션에서는 Redis 등 외부 저장소 사용 권장
-    # store-type: redis
-
   h2:
     console:
       enabled: true
@@ -77,9 +71,3 @@ springdoc:
 
 server:
   port: 8080
-  servlet:
-    session:
-      cookie:
-        http-only: true  # JavaScript에서 쿠키 접근 불가 (XSS 방지)
-        secure: false    # 개발 환경은 HTTP, 프로덕션은 true로 설정
-        same-site: lax   # CSRF 공격 방지

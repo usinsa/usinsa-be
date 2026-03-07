@@ -12,6 +12,7 @@ public class CookieUtil {
 
     public static final String ACCESS_TOKEN  = "accessToken";
     public static final String REFRESH_TOKEN = "refreshToken";
+    public static final String GUEST_ID      = "guestId";     // 비회원 장바구니 식별자
 
     // ── 조회 ──────────────────────────────────────────────────────────
 
@@ -40,6 +41,11 @@ public class CookieUtil {
         if (deviceId != null && !deviceId.isBlank()) return deviceId;
         String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
         return Integer.toHexString(Objects.hash(userAgent));
+    }
+
+    /** 비회원 장바구니 식별자: guestId 쿠키에서 추출 */
+    public static Optional<String> resolveGuestId(HttpServletRequest request) {
+        return getCookie(request, GUEST_ID).map(Cookie::getValue);
     }
 
     // ── 발급 ──────────────────────────────────────────────────────────

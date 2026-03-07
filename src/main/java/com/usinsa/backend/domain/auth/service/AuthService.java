@@ -76,12 +76,6 @@ public class AuthService {
             tokenService.logout(accessToken);
         }
         CookieUtil.clearTokenCookies(req, res);
-
-        // 혹시 남아있는 세션이 있다면 즉시 무효화
-        jakarta.servlet.http.HttpSession session = req.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
         log.info("Logout complete");
     }
 

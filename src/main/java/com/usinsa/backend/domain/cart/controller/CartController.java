@@ -4,6 +4,8 @@ import com.usinsa.backend.domain.cart.dto.CartDto;
 import com.usinsa.backend.domain.cart.service.CartService;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
+import com.usinsa.backend.global.util.CookieUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -17,22 +19,13 @@ import java.util.List;
 @RequestMapping("/api/v1/carts")
 public class CartController {
 
-    private static final String SESSION_HEADER = "X-Session-Id";
-
     private final CartService cartService;
+
+    // ── 회원 장바구니 ──────────────────────────────────────────────────
 
     @PostMapping
     public ResponseEntity<CartDto.Response> createCart(@RequestBody CartDto.CreateReq request) {
         return ResponseEntity.ok(cartService.create(request));
-    }
-
-    /** 비회원 장바구니 생성 — 세션 ID는 X-Session-Id 헤더로 전달 */
-    @PostMapping("/guest")
-    public ResponseEntity<CartDto.Response> createGuestCart(
-            @RequestBody CartDto.GuestCreateReq request,
-            @RequestHeader(SESSION_HEADER) String sessionId) {
-        log.info("비회원 장바구니 생성 - sessionId={}", sessionId);
-        return ResponseEntity.ok(cartService.createGuestCart(request, sessionId));
     }
 
     @GetMapping("/{id}")
@@ -50,23 +43,6 @@ public class CartController {
         return ResponseEntity.ok(cartService.findByMemberId(memberId));
     }
 
-    /** 비회원 장바구니 조회 */
-    @GetMapping("/guest")
-    public ResponseEntity<List<CartDto.Response>> getGuestCarts(
-            @RequestHeader(SESSION_HEADER) String sessionId) {
-        log.info("비회원 장바구니 조회 - sessionId={}", sessionId);
-        return ResponseEntity.ok(cartService.findBySessionId(sessionId));
-    }
-
-    /** 비회원 → 회원 장바구니 병합 */
-    @PostMapping("/merge/{memberId}")
-    public ResponseEntity<List<CartDto.Response>> mergeGuestCart(
-            @PathVariable Long memberId,
-            @RequestHeader(SESSION_HEADER) String sessionId) {
-        log.info("장바구니 병합 - sessionId={}, memberId={}", sessionId, memberId);
-        return ResponseEntity.ok(cartService.mergeGuestCartToMember(sessionId, memberId));
-    }
-
     @PutMapping("/{id}")
     public ResponseEntity<CartDto.Response> updateCart(
             @PathVariable Long id,
@@ -80,12 +56,47 @@ public class CartController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 비회원 장바구니 전체 삭제 */
+    // ── 비회원 장바구니 (guestId 쿠키 기반) ───────────────────────────
+
+    @PostMapping("/guest")
+    public ResponseEntity<CartDto.Response> createGuestCart(
+            @RequestBody CartDto.GuestCreateReq request,
+            HttpServletRequest httpRequest) {
+        String guestId = resolveGuestId(httpRequest);
+        log.info("비회원 장바구니 생성 - guestId={}", guestId);
+        return ResponseEntity.ok(cartService.createGuestCart(request, guestId));
+    }
+
+    @GetMapping("/guest")
+    public ResponseEntity<List<CartDto.Response>> getGuestCarts(HttpServletRequest httpRequest) {
+        String guestId = resolveGuestId(httpRequest);
+        log.info("비회원 장바구니 조회 - guestId={}", guestId);
+        return ResponseEntity.ok(cartService.findByGuestId(guestId));
+    }
+
     @DeleteMapping("/guest")
-    public ResponseEntity<Void> deleteGuestCart(
-            @RequestHeader(SESSION_HEADER) String sessionId) {
-        log.info("비회원 장바구니 삭제 - sessionId={}", sessionId);
-        cartService.deleteGuestCart(sessionId);
+    public ResponseEntity<Void> deleteGuestCart(HttpServletRequest httpRequest) {
+        String guestId = resolveGuestId(httpRequest);
+        log.info("비회원 장바구니 삭제 - guestId={}", guestId);
+        cartService.deleteGuestCart(guestId);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── 병합 ──────────────────────────────────────────────────────────
+
+    @PostMapping("/merge/{memberId}")
+    public ResponseEntity<List<CartDto.Response>> mergeGuestCart(
+            @PathVariable Long memberId,
+            HttpServletRequest httpRequest) {
+        String guestId = resolveGuestId(httpRequest);
+        log.info("장바구니 병합 - guestId={}, memberId={}", guestId, memberId);
+        return ResponseEntity.ok(cartService.mergeGuestCartToMember(guestId, memberId));
+    }
+
+    // ── helper ────────────────────────────────────────────────────────
+
+    private String resolveGuestId(HttpServletRequest request) {
+        return CookieUtil.resolveGuestId(request)
+                .orElseThrow(() -> new CustomException(ErrorCode.SESSION_ID_REQUIRED));
     }
 }

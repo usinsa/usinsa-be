@@ -42,5 +42,11 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 
     List<Cart> findBySessionId(String sessionId);
 
+    @Query("SELECT c FROM Cart c " +
+            "JOIN FETCH c.productOption po " +
+            "JOIN FETCH po.product p " +
+            "WHERE c.id IN :ids")
+    List<Cart> findByIdsWithProduct(@Param("ids") List<Long> ids);
+
     void deleteBySessionId(String sessionId);
 }
