@@ -11,7 +11,10 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
+import org.springframework.context.annotation.Profile;
+
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 public class ElasticsearchEventListener {
 

@@ -47,3 +47,9 @@ spring:
 
 server:
   port: 8080
+
+zincsearch:
+  url: ${ZINCSEARCH_URL:http://localhost:4080}
+  index: products
+  username: ${ZINCSEARCH_USER:admin}
+  password: ${ZINCSEARCH_PASSWORD:Complexpass#123}

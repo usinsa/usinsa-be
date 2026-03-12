@@ -1,37 +1,37 @@
 package com.usinsa.backend.domain.search.elastic.init;
 
 import com.usinsa.backend.domain.product.repository.ProductRepository;
-import com.usinsa.backend.domain.search.elastic.document.ProductDocument;
-import com.usinsa.backend.domain.search.elastic.repository.ProductSearchRepository;
+import com.usinsa.backend.domain.search.port.ProductIndexPort;
+import com.usinsa.backend.domain.search.result.dto.ProductSearchDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Collectors;
+import java.util.List;
 
+/**
+ * 앱 시작 시 검색 인덱스 초기화 (ES or ZincSearch 공통)
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ProductIndexer implements CommandLineRunner {
 
     private final ProductRepository productRepository;
-    private final ProductSearchRepository productSearchRepository;
-
+    private final ProductIndexPort productIndexPort;
 
     @Override
     public void run(String... args) {
-        // Elasticsearch 인덱스가 이미 있으면 재인덱싱하지 않음
-        long existingCount = productSearchRepository.count();
-        if (existingCount > 0) {
-            log.info("Elasticsearch 인덱스에 이미 {}개의 상품이 있습니다. 재인덱싱을 건너뜁니다.", existingCount);
+        long existing = productIndexPort.count();
+        if (existing > 0) {
+            log.info("검색 인덱스에 이미 {}개 상품이 있습니다. 초기화를 건너뜁니다.", existing);
             return;
         }
 
-        log.info("Elasticsearch 인덱싱을 시작합니다...");
-        var products = productRepository.findAll();
-        var docs = products.stream()
-                .map(p -> ProductDocument.builder()
+        log.info("검색 인덱스 초기화 시작...");
+        List<ProductSearchDto> docs = productRepository.findAll().stream()
+                .map(p -> ProductSearchDto.builder()
                         .id(p.getId())
                         .name(p.getName())
                         .brandName(p.getBrandName())
@@ -40,9 +40,9 @@ public class ProductIndexer implements CommandLineRunner {
                         .likeCount(p.getLikeCount())
                         .clickCount(p.getClickCount())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
-        productSearchRepository.saveAll(docs);
-        log.info("Elasticsearch 인덱싱 완료 ({} 개 상품)", docs.size());
+        productIndexPort.saveAll(docs);
+        log.info("검색 인덱스 초기화 완료 ({} 개 상품)", docs.size());
     }
 }
