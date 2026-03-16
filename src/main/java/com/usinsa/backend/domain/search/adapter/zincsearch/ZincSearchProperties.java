@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 @Profile("prod")
 @ConfigurationProperties(prefix = "zincsearch")
 public class ZincSearchProperties {
-    private String url = "http://localhost:4080";
-    private String index = "products";
-    private String username = "admin";
-    private String password = "Complexpass#123";
+    private String url;
+    private String index;
+    private String username;
+    private String password;
 }

@@ -1,20 +1,16 @@
 spring:
-  # DB 정보는 application-secret.yml의 prod 프로파일에서 가져옵니다
   datasource:
     driver-class-name: org.postgresql.Driver
-    # url, username, password는 application-secret.yml의 prod 프로파일에서 가져옵니다
 
   security:
     oauth2:
       client:
         registration:
           google:
-            # client-id, client-secret은 application-secret.yml의 prod 프로파일에서 가져옵니다
             scope:
               - profile
               - email
           naver:
-            # client-id, client-secret은 application-secret.yml의 prod 프로파일에서 가져옵니다
             client-authentication-method: post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -24,7 +20,6 @@ spring:
               - profile_image
             client-name: Naver
           kakao:
-            # client-id, client-secret은 application-secret.yml의 prod 프로파일에서 가져옵니다
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -44,12 +39,9 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+zincsearch:
+  url: ${ZINCSEARCH_URL}
+  index: products
 
 server:
   port: 8080
-
-zincsearch:
-  url: ${ZINCSEARCH_URL:http://localhost:4080}
-  index: products
-  username: ${ZINCSEARCH_USER:admin}
-  password: ${ZINCSEARCH_PASSWORD:Complexpass#123}
