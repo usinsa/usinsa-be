@@ -2,8 +2,8 @@ package com.usinsa.backend.domain.search.adapter.zincsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -14,19 +14,25 @@ import java.util.Map;
 
 /**
  * ZincSearch REST API 공통 클라이언트
- * <p>
  * ZincSearch는 Elasticsearch 호환 API를 제공하므로
  * /_bulk, /{index}/_search, /{index}/_doc/{id} 등의 엔드포인트를 그대로 사용.
  */
 @Slf4j
 @Component
 @Profile("prod")
-@RequiredArgsConstructor
 public class ZincSearchClient {
 
     private final ZincSearchProperties props;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
+
+    public ZincSearchClient(ZincSearchProperties props,
+                            ObjectMapper objectMapper,
+                            @Qualifier("zincRestTemplate") RestTemplate restTemplate) {
+        this.props = props;
+        this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
+    }
 
     // ── 공통 헤더 ─────────────────────────────────────────────────────
 

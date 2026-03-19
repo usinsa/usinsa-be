@@ -8,6 +8,11 @@ dockerfile = "Dockerfile"
 internal_port = 8080
 protocol = "tcp"
 
+[services.concurrency]
+type = "connections"
+hard_limit = 25
+soft_limit = 20
+
 [[services.ports]]
 handlers = ["http"]
 port = 80
@@ -16,7 +21,13 @@ port = 80
 handlers = ["tls", "http"]
 port = 443
 
-[services.concurrency]
-type = "connections"
-hard_limit = 25
-soft_limit = 20
+[[services.tcp_checks]]
+interval = "30s"
+timeout = "10s"
+grace_period = "240s"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+  swap_size_mb = 512

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 @Getter
 @Setter
-@Component
 @Profile("prod")
 @ConfigurationProperties(prefix = "zincsearch")
 public class ZincSearchProperties {

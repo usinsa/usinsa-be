@@ -1,0 +1,15 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y redis-server wget curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN wget -q https://github.com/zincsearch/zincsearch/releases/download/v0.4.10/zincsearch_0.4.10_Linux_x86_64.tar.gz \
+    && tar -xzf zincsearch_0.4.10_Linux_x86_64.tar.gz \
+    && mv zincsearch /usr/local/bin/ \
+    && rm zincsearch_0.4.10_Linux_x86_64.tar.gz
+
+COPY infra-start.sh /infra-start.sh
+RUN chmod +x /infra-start.sh
+
+EXPOSE 6379 4080
+CMD ["/infra-start.sh"]
