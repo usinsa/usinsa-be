@@ -1,0 +1,6 @@
+src/main/resources/application-secret.yml
+.gradle
+.idea
+*.iml
+out/
+bin/
