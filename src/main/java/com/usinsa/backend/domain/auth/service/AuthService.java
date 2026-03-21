@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,12 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService tokenService;
     private final JwtProperties jwtProperties;
+
+    @Value("${server.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${server.cookie.domain:}")
+    private String cookieDomain;
 
     // ── 로그인 ────────────────────────────────────────────────────────
 
@@ -60,9 +67,9 @@ public class AuthService {
 
         // 새 토큰을 쿠키에 덮어씀
         CookieUtil.addCookie(res, CookieUtil.ACCESS_TOKEN,
-                tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds());
+                tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds(), cookieSecure, cookieDomain);
         CookieUtil.addCookie(res, CookieUtil.REFRESH_TOKEN,
-                tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds());
+                tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds(), cookieSecure, cookieDomain);
 
         log.info("Token refreshed: deviceId={}", deviceId);
         return tokenPair;
@@ -130,9 +137,9 @@ public class AuthService {
                 member.getId(), member.getEmail(), roles, deviceId);
 
         CookieUtil.addCookie(res, CookieUtil.ACCESS_TOKEN,
-                tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds());
+                tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds(), cookieSecure, cookieDomain);
         CookieUtil.addCookie(res, CookieUtil.REFRESH_TOKEN,
-                tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds());
+                tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds(), cookieSecure, cookieDomain);
         return tokenPair;
     }
 

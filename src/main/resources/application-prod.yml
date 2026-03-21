@@ -50,3 +50,6 @@ zincsearch:
 
 server:
   port: 8080
+  cookie:
+    secure: true
+    domain: .usinsa.store

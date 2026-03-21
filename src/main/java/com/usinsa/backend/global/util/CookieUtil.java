@@ -12,9 +12,7 @@ public class CookieUtil {
 
     public static final String ACCESS_TOKEN  = "accessToken";
     public static final String REFRESH_TOKEN = "refreshToken";
-    public static final String GUEST_ID      = "guestId";     // 비회원 장바구니 식별자
-
-    // ── 조회 ──────────────────────────────────────────────────────────
+    public static final String GUEST_ID      = "guestId";
 
     public static Optional<Cookie> getCookie(HttpServletRequest request, String name) {
         Cookie[] cookies = request.getCookies();
@@ -26,7 +24,6 @@ public class CookieUtil {
     }
 
     public static String resolveAccessToken(HttpServletRequest request) {
-        // 쿠키 우선, 없으면 Authorization 헤더
         return getCookie(request, ACCESS_TOKEN)
                 .map(Cookie::getValue)
                 .orElseGet(() -> {
@@ -43,36 +40,23 @@ public class CookieUtil {
         return Integer.toHexString(Objects.hash(userAgent));
     }
 
-    /** 비회원 장바구니 식별자: guestId 쿠키에서 추출 */
     public static Optional<String> resolveGuestId(HttpServletRequest request) {
         return getCookie(request, GUEST_ID).map(Cookie::getValue);
     }
 
-    // ── 발급 ──────────────────────────────────────────────────────────
-
-    /**
-     * HttpOnly 쿠키 추가
-     *
-     * @param secure true = HTTPS 전용 (운영), false = HTTP 허용 (개발)
-     */
     public static void addCookie(HttpServletResponse response,
                                   String name, String value,
-                                  int maxAgeSeconds, boolean secure) {
+                                  int maxAgeSeconds, boolean secure, String domain) {
         Cookie cookie = new Cookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(secure);
         cookie.setMaxAge(maxAgeSeconds);
+        if (domain != null && !domain.isBlank()) {
+            cookie.setDomain(domain);
+        }
         response.addCookie(cookie);
     }
-
-    /** 개발 편의용 오버로드 (secure=false) */
-    public static void addCookie(HttpServletResponse response,
-                                  String name, String value, int maxAgeSeconds) {
-        addCookie(response, name, value, maxAgeSeconds, false);
-    }
-
-    // ── 삭제 ──────────────────────────────────────────────────────────
 
     public static void deleteCookie(HttpServletRequest request,
                                      HttpServletResponse response, String name) {
@@ -88,7 +72,6 @@ public class CookieUtil {
         }
     }
 
-    /** Access/Refresh 토큰 쿠키 일괄 삭제 */
     public static void clearTokenCookies(HttpServletRequest request, HttpServletResponse response) {
         deleteCookie(request, response, ACCESS_TOKEN);
         deleteCookie(request, response, REFRESH_TOKEN);

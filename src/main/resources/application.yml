@@ -19,10 +19,11 @@ spring:
 # OAuth 설정
 oauth:
   # FE OAuth 콜백 기본 URL (SuccessHandler에서 사용)
-  callback-base-url: http://localhost:5173/oauth/callback
+  callback-base-url: ${OAUTH_CALLBACK_BASE_URL:http://localhost:5173/oauth/callback}
   allowed-origins:
     - http://localhost:5173
     - http://127.0.0.1:5173
+    - https://www.usinsa.store
 
 logging:
   level:

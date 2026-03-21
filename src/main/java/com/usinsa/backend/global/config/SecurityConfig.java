@@ -42,24 +42,30 @@ public class SecurityConfig {
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/h2-console/**",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**"
-                ).permitAll()
+                .requestMatchers("/h2-console/**").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // 인증 API
                 .requestMatchers(
                     "/api/v1/auth/login",
                     "/api/v1/auth/logout",
                     "/api/v1/auth/signup",
-                    "/api/v1/auth/refresh"
+                    "/api/v1/auth/refresh",
+                    "/api/v1/auth/me"
                 ).permitAll()
+                // OAuth2
                 .requestMatchers(
                     "/oauth2/authorization/**",
                     "/login/oauth2/code/**"
                 ).permitAll()
-                /*########## 테스트용 전체 허용 (운영 전 제거) ##########*/
-                .requestMatchers("/api/**").permitAll()
-                /*######################################################*/
+                // 상품/카테고리 조회 — 비로그인 허용
+                .requestMatchers(HttpMethod.GET,
+                    "/api/v1/products/**",
+                    "/api/v1/categories/**",
+                    "/api/v1/search/**"
+                ).permitAll()
+                // 비회원 장바구니
+                .requestMatchers("/api/v1/carts/guest/**").permitAll()
+                // 나머지는 인증 필요
                 .anyRequest().authenticated()
             )
 
