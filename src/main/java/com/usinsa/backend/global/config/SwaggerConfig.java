@@ -56,7 +56,7 @@ public class SwaggerConfig {
                 .title("Usinsa API")
                 .version("v1.0.0")
                 .description("""
-                        ## 유시나 프로젝트 REST API 문서
+                        ## 유신사 프로젝트 REST API 문서
                         
                         ### 인증 방법
                         1. POST /api/v1/auth/login - 로그인하여 JWT 토큰 발급
@@ -85,7 +85,7 @@ public class SwaggerConfig {
                         .url("http://localhost:8080")
                         .description("Local Development Server"),
                 new Server()
-                        .url("https://api.usinsa.com")
+                        .url("https://api.usinsa.store")
                         .description("Production Server")
         );
 
