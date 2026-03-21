@@ -73,7 +73,6 @@ public class SwaggerConfig {
                         """)
                 .contact(new Contact()
                         .name("Usinsa Team")
-                        .email("support@usinsa.com")
                         .url("https://github.com/usinsa"))
                 .license(new License()
                         .name("MIT License")
