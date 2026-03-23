@@ -63,11 +63,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3. 블랙리스트 확인 (로그아웃된 토큰)
-        if (tokenService.isBlacklisted(token)) {
-            log.debug("Blacklisted JWT token");
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+        // 3. 블랙리스트 확인 (로그아웃된 토큰) — Redis 장애 시 통과
+        try {
+            if (tokenService.isBlacklisted(token)) {
+                log.debug("Blacklisted JWT token");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+        } catch (Exception e) {
+            log.warn("Redis blacklist check failed, allowing request: {}", e.getMessage());
         }
 
         // 4. 토큰 파싱 및 인증 정보 추출
@@ -99,6 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.debug("JWT authentication successful for memberId={}", memberId);
         } catch (Exception e) {
             log.error("JWT authentication failed: {}", e.getMessage());
+            // 인증 실패해도 chain은 계속 — Security가 401 처리
         }
 
         chain.doFilter(request, response);

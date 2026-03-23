@@ -1,3 +1,15 @@
+jwt:
+  secret: ${JWT_SECRET}
+  access-expire-seconds: 1800
+  refresh-expire-seconds: 1209600
+
+kakaopay:
+  secretKey: ${KAKAOPAY_SECRET_KEY}
+  cid: ${KAKAOPAY_CID}
+
+oauth:
+  callback-base-url: https://www.usinsa.store/oauth/callback
+
 spring:
   autoconfigure:
     exclude:
@@ -7,15 +19,32 @@ spring:
       - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRepositoriesAutoConfiguration
       - org.springframework.boot.autoconfigure.data.elasticsearch.ReactiveElasticsearchRestClientAutoConfiguration
 
+  datasource:
+    url: ${JDBC_DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      lettuce:
+        pool:
+          enabled: false
+
   security:
     oauth2:
       client:
         registration:
           google:
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
             scope:
               - profile
               - email
           naver:
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_NAVER_CLIENT_SECRET}
             client-authentication-method: post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -25,6 +54,8 @@ spring:
               - profile_image
             client-name: Naver
           kakao:
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_ID}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
@@ -44,12 +75,15 @@ spring:
             token-uri: https://kauth.kakao.com/oauth/token
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
+
 zincsearch:
   url: ${ZINCSEARCH_URL}
   index: products
+  username: ${ZINCSEARCH_USER}
+  password: ${ZINCSEARCH_PASSWORD}
 
 server:
   port: 8080
   cookie:
     secure: true
-    domain: .usinsa.store
+    domain: usinsa.store

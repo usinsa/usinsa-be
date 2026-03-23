@@ -82,6 +82,24 @@ public class CartController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/guest/{id}")
+    public ResponseEntity<CartDto.Response> updateGuestCart(
+            @PathVariable Long id,
+            @RequestBody CartDto.UpdateReq request,
+            HttpServletRequest httpRequest) {
+        resolveGuestId(httpRequest); // guestId 검증
+        return ResponseEntity.ok(cartService.update(id, request));
+    }
+
+    @DeleteMapping("/guest/{id}")
+    public ResponseEntity<Void> deleteGuestCartItem(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        resolveGuestId(httpRequest); // guestId 검증
+        cartService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ── 병합 ──────────────────────────────────────────────────────────
 
     @PostMapping("/merge/{memberId}")

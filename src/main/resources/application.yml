@@ -1,10 +1,8 @@
 spring:
   profiles:
-    active: dev   # 기본 active → 개발 환경
+    active: dev
     group:
       dev:
-        - secret
-      prod:
         - secret
 
   jpa:
@@ -18,8 +16,7 @@ spring:
 
 # OAuth 설정
 oauth:
-  # FE OAuth 콜백 기본 URL (SuccessHandler에서 사용)
-  callback-base-url: ${OAUTH_CALLBACK_BASE_URL:http://localhost:5173/oauth/callback}
+  callback-base-url: http://localhost:5173/oauth/callback
   allowed-origins:
     - http://localhost:5173
     - http://127.0.0.1:5173

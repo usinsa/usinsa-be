@@ -1,6 +1,6 @@
 #!/bin/bash
 redis-server \
-  --bind 0.0.0.0 \
+  --bind 0.0.0.0 :: \
   --requirepass "${REDIS_PASSWORD}" \
   --daemonize yes
 

@@ -70,7 +70,6 @@ public class SecurityConfig {
             )
 
             .oauth2Login(oauth2 -> oauth2
-                // OAuth state를 세션 대신 쿠키에 저장 → JSESSIONID 미생성
                 .authorizationEndpoint(ep -> ep
                     .authorizationRequestRepository(cookieAuthorizationRequestRepository))
                 .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))

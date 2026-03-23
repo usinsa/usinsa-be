@@ -70,6 +70,7 @@ public class AuthService {
                 tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds(), cookieSecure, cookieDomain);
         CookieUtil.addCookie(res, CookieUtil.REFRESH_TOKEN,
                 tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds(), cookieSecure, cookieDomain);
+        CookieUtil.addDeviceIdCookie(res, deviceId, cookieSecure, cookieDomain);
 
         log.info("Token refreshed: deviceId={}", deviceId);
         return tokenPair;
@@ -82,7 +83,7 @@ public class AuthService {
         if (accessToken != null) {
             tokenService.logout(accessToken);
         }
-        CookieUtil.clearTokenCookies(req, res);
+        CookieUtil.clearTokenCookies(req, res, cookieSecure, cookieDomain);
         log.info("Logout complete");
     }
 
@@ -140,6 +141,7 @@ public class AuthService {
                 tokenPair.getAccessToken(), (int) jwtProperties.getAccessExpireSeconds(), cookieSecure, cookieDomain);
         CookieUtil.addCookie(res, CookieUtil.REFRESH_TOKEN,
                 tokenPair.getRefreshToken(), (int) jwtProperties.getRefreshExpireSeconds(), cookieSecure, cookieDomain);
+        CookieUtil.addDeviceIdCookie(res, deviceId, cookieSecure, cookieDomain);
         return tokenPair;
     }
 

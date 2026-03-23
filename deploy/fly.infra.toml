@@ -5,20 +5,18 @@ primary_region = "nrt"
   dockerfile = "Dockerfile.infra"
 
 [[services]]
-  internal_port = 6379
-  protocol = "tcp"
-  [[services.ports]]
-    port = 6379
-
-[[services]]
   internal_port = 4080
   protocol = "tcp"
+
   [[services.ports]]
     port = 4080
 
-[mounts]
+[[mounts]]
   source = "infra_data"
   destination = "/data"
 
 [[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
   swap_size_mb = 256
