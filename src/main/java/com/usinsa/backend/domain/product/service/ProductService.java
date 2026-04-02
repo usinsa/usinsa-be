@@ -107,6 +107,14 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    // 카테고리별 상품 조회 (상위 카테고리 선택 시 하위 카테고리 상품 포함)
+    @Transactional(readOnly = true)
+    public List<ProductDto.Response> findByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId).stream()
+                .map(this::toProductResDto)
+                .collect(Collectors.toList());
+    }
+
     // 전체 재색인 수행
     public int rebuildIndex() {
         List<Product> allProducts = productRepository.findAll();

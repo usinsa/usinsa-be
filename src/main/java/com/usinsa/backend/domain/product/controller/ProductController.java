@@ -52,6 +52,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.findAll());
     }
 
+    // 카테고리별 상품 조회
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<ProductDto.Response>> getProductsByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(productService.findByCategoryId(categoryId));
+    }
+
     // 상품 옵션 추가
     @PostMapping("/{productId}/options")
     public ResponseEntity<ProductOptionDto.Response> addOption(
