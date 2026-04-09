@@ -1,0 +1,56 @@
+# docker-compose.yml
+services:
+  postgres:
+    image: postgres:16
+    container_name: usinsa-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"              # 호스트:컨테이너
+    environment:
+      POSTGRES_DB: usinsa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: Asia/Seoul
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d  # 초기 스키마/데이터 넣고 싶을 때
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d usinsa"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ES
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.0
+    container_name: usinsa-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  # Redis
+  redis:
+    image: redis:7.2
+    container_name: usinsa-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --requirepass usinsa
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  db_data:
+  redis-data:
+  es-data:

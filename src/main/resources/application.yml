@@ -1,0 +1,28 @@
+spring:
+  profiles:
+    active: dev
+    group:
+      dev:
+        - secret
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+
+  jackson:
+    serialization:
+      indent-output: true
+
+# OAuth 설정
+oauth:
+  callback-base-url: http://localhost:5173/oauth/callback
+  allowed-origins:
+    - http://localhost:5173
+    - http://127.0.0.1:5173
+    - https://www.usinsa.store
+
+logging:
+  level:
+    root: INFO
+    com.usinsa.backend.domain.auth.oauth: DEBUG  # OAuth 상세 로그

@@ -1,0 +1,22 @@
+app = "usinsa-infra"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile.infra"
+
+[[services]]
+  internal_port = 4080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 4080
+
+[[mounts]]
+  source = "infra_data"
+  destination = "/data"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+  swap_size_mb = 256

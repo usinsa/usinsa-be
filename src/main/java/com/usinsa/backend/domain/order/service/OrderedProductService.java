@@ -1,0 +1,95 @@
+package com.usinsa.backend.domain.order.service;
+
+import com.usinsa.backend.domain.order.dto.OrderedProductDto;
+import com.usinsa.backend.domain.order.entity.Order;
+import com.usinsa.backend.domain.order.entity.OrderedProduct;
+import com.usinsa.backend.domain.order.repository.OrderRepository;
+import com.usinsa.backend.domain.order.repository.OrderedProductRepository;
+import com.usinsa.backend.domain.product.entity.ProductOption;
+import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class OrderedProductService {
+
+    private final OrderedProductRepository orderedProductRepository;
+    private final OrderRepository orderRepository;
+    private final ProductOptionRepository productOptionRepository;
+
+    // 등록
+    public OrderedProductDto.Response create(OrderedProductDto.Request reqDto) {
+        Order order = orderRepository.findById(reqDto.getOrderId())
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        ProductOption option = productOptionRepository.findById(reqDto.getProductOptionId())
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_OPTION_NOT_FOUND));
+
+        OrderedProduct orderedProduct = toEntity(reqDto, order, option);
+        OrderedProduct saved = orderedProductRepository.save(orderedProduct);
+
+        return toResDto(saved);
+    }
+
+    // 단건 조회
+    @Transactional(readOnly = true)
+    public OrderedProductDto.Response findById(Long id) {
+        OrderedProduct orderedProduct = orderedProductRepository.findWithOrderAndProductOptionById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDERED_PRODUCT_NOT_FOUND));
+        return toResDto(orderedProduct);
+    }
+
+    // 전체 조회
+    @Transactional(readOnly = true)
+    public List<OrderedProductDto.Response> findAll() {
+        return orderedProductRepository.findAll()
+                .stream()
+                .map(this::toResDto)
+                .collect(Collectors.toList());
+    }
+
+    // 수정 (수량 변경)
+    public OrderedProductDto.Response updateQuantity(Long id, Integer newQuantity) {
+        OrderedProduct orderedProduct = orderedProductRepository.findWithOrderAndProductOptionById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDERED_PRODUCT_NOT_FOUND));
+
+        orderedProduct.setQuantity(newQuantity);
+        return toResDto(orderedProduct);
+    }
+
+    // 삭제
+    public void delete(Long id) {
+        OrderedProduct orderedProduct = orderedProductRepository.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDERED_PRODUCT_NOT_FOUND));
+        orderedProductRepository.delete(orderedProduct);
+    }
+
+    private OrderedProduct toEntity(OrderedProductDto.Request reqDto, Order order, ProductOption option) {
+        return OrderedProduct.builder()
+                .order(order)
+                .productOption(option)
+                .quantity(reqDto.getQuantity())
+                .build();
+    }
+
+    /* DTO 내부에서 변환 시키지 않는 이유
+        기존: DTO 내부에 변환 코드 작성 -> 코드 단순화 but 의존도 상승
+        신규: DTO가 엔티티를 모르는 상태를 유지해서 결합도 낮춤
+     */
+    private OrderedProductDto.Response toResDto(OrderedProduct orderedProduct) {
+        return OrderedProductDto.Response.builder()
+                .id(orderedProduct.getId())
+                .orderId(orderedProduct.getOrder().getId())
+                .productOptionId(orderedProduct.getProductOption().getId())
+                .quantity(orderedProduct.getQuantity())
+                .build();
+    }
+}
