@@ -10,13 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 
-/**
- * ZincSearch REST API 공통 클라이언트
- * ZincSearch는 Elasticsearch 호환 API를 제공하므로
- * /_bulk, /{index}/_search, /{index}/_doc/{id} 등의 엔드포인트를 그대로 사용.
- */
 @Slf4j
 @Component
 @Profile("prod")
@@ -43,6 +39,56 @@ public class ZincSearchClient {
         h.setContentType(MediaType.APPLICATION_JSON);
         h.set(HttpHeaders.AUTHORIZATION, "Basic " + encoded);
         return h;
+    }
+
+    // ── 메인 색인 ─────────────────────────────────────────────────────
+    public void createIndexIfNotExists() {
+        String url = props.getUrl() + "/api/index";
+
+        Map<String, Object> body = Map.of(
+                "name", props.getIndex(),
+                "storage_type", "disk",
+                "mappings", Map.of(
+                        "properties", Map.of(
+                                "name", Map.of(
+                                        "type", "text",
+                                        "analyzer", "edge_ngram_analyzer",
+                                        "search_analyzer", "standard"
+                                ),
+                                "brandName", Map.of("type", "text"),
+                                "categoryName", Map.of("type", "text"),
+                                "price", Map.of("type", "long"),
+                                "likeCount", Map.of("type", "integer"),
+                                "clickCount", Map.of("type", "integer")
+                        )
+                ),
+                "analysis", Map.of(
+                        "analyzer", Map.of(
+                                "edge_ngram_analyzer", Map.of(
+                                        "type", "custom",
+                                        "tokenizer", "edge_ngram_tokenizer",
+                                        "filter", List.of("lowercase")
+                                )
+                        ),
+                        "tokenizer", Map.of(
+                                "edge_ngram_tokenizer", Map.of(
+                                        "type", "edge_ngram",
+                                        "min_gram", 1,
+                                        "max_gram", 20,
+                                        "token_chars", List.of("letter", "digit", "symbol")
+                                )
+                        )
+                )
+        );
+
+        try {
+            String json = objectMapper.writeValueAsString(body);
+            restTemplate.exchange(url, HttpMethod.POST,
+                    new HttpEntity<>(json, headers()), String.class);
+            log.info("ZincSearch index 생성 완료");
+        } catch (Exception e) {
+            log.warn("Index 이미 존재하거나 생성 실패: {}", e.getMessage());
+        }
     }
 
     // ── 단건 색인 ─────────────────────────────────────────────────────
@@ -91,11 +137,9 @@ public class ZincSearchClient {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "match", Map.of(
-                                "name", Map.of(
-                                        "query", keyword,
-                                        "operator", "or"
-                                )
+                        "multi_match", Map.of(
+                                "query", keyword,
+                                "fields", List.of("name", "brandName", "categoryName")
                         )
                 ),
                 "size", 50

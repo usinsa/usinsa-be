@@ -23,6 +23,9 @@ public class ProductIndexer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+
+        productIndexPort.initIndex();
+
         long existing = productIndexPort.count();
         if (existing > 0) {
             log.info("검색 인덱스에 이미 {}개 상품이 있습니다. 초기화를 건너뜁니다.", existing);

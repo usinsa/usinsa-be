@@ -1,5 +1,6 @@
 package com.usinsa.backend.domain.search.adapter.zincsearch;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.usinsa.backend.domain.search.port.ProductIndexPort;
 import com.usinsa.backend.domain.search.result.dto.ProductSearchDto;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,8 @@ import java.util.Map;
 public class ZincSearchIndexAdapter implements ProductIndexPort {
 
     private final ZincSearchClient client;
+    private final ObjectMapper objectMapper;
+    private final ZincSearchProperties props;
 
     @Override
     public void save(ProductSearchDto dto) {
@@ -30,12 +33,13 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
     public void saveAll(List<ProductSearchDto> docs) {
         if (docs.isEmpty()) return;
 
-        // ZincSearch Bulk API: NDJSON 포맷
-        // { "index": { "_index": "products", "_id": "1" } }
-        // { "id": 1, "name": "...", ... }
         StringBuilder sb = new StringBuilder();
         for (ProductSearchDto dto : docs) {
-            sb.append("{\"index\":{\"_index\":\"products\",\"_id\":\"").append(dto.getId()).append("\"}}\n");
+            sb.append("{\"index\":{\"_index\":\"")
+                    .append(props.getIndex())
+                    .append("\",\"_id\":\"")
+                    .append(dto.getId())
+                    .append("\"}}\n");
             sb.append(toNdjsonLine(dto)).append("\n");
         }
         client.bulkIndex(sb.toString());
@@ -44,6 +48,11 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
     @Override
     public long count() {
         return client.count();
+    }
+
+    @Override
+    public void initIndex() {
+        client.createIndexIfNotExists();
     }
 
     // ── helpers ───────────────────────────────────────────────────────
@@ -61,13 +70,10 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
     }
 
     private String toNdjsonLine(ProductSearchDto dto) {
-        return "{\"id\":" + dto.getId()
-                + ",\"name\":\"" + dto.getName() + "\""
-                + ",\"brandName\":\"" + dto.getBrandName() + "\""
-                + ",\"categoryName\":\"" + dto.getCategoryName() + "\""
-                + ",\"price\":" + dto.getPrice()
-                + ",\"likeCount\":" + dto.getLikeCount()
-                + ",\"clickCount\":" + dto.getClickCount()
-                + "}";
+        try {
+            return objectMapper.writeValueAsString(dto);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

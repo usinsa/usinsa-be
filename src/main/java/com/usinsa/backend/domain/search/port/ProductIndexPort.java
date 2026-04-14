@@ -13,4 +13,6 @@ public interface ProductIndexPort {
     void delete(Long productId);
     void saveAll(List<ProductSearchDto> docs);
     long count();
+
+    void initIndex();
 }

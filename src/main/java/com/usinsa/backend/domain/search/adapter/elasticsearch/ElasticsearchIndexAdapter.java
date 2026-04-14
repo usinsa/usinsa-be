@@ -18,6 +18,9 @@ public class ElasticsearchIndexAdapter implements ProductIndexPort {
     private final ProductSearchRepository productSearchRepository;
 
     @Override
+    public void initIndex() {}
+
+    @Override
     public void save(ProductSearchDto dto) {
         productSearchRepository.save(toDocument(dto));
     }
