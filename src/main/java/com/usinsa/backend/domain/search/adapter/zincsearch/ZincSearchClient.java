@@ -41,13 +41,45 @@ public class ZincSearchClient {
         return h;
     }
 
-    // ── 메인 색인 ─────────────────────────────────────────────────────
+    // ── 인덱스 생성 ───────────────────────────────────────────────────
+    // ZincSearch: analysis 설정은 mappings와 동일 레벨(최상위)에 위치해야 함
+
     public void createIndexIfNotExists() {
         String url = props.getUrl() + "/api/index";
 
         Map<String, Object> body = Map.of(
                 "name", props.getIndex(),
                 "storage_type", "disk",
+                "settings", Map.of(
+                        "analysis", Map.of(
+                                "analyzer", Map.of(
+                                        "edge_ngram_analyzer", Map.of(
+                                                "type", "custom",
+                                                "tokenizer", "edge_ngram_tokenizer",
+                                                "filter", List.of("lowercase")
+                                        ),
+                                        "ngram_analyzer", Map.of(
+                                                "type", "custom",
+                                                "tokenizer", "ngram_tokenizer",
+                                                "filter", List.of("lowercase")
+                                        )
+                                ),
+                                "tokenizer", Map.of(
+                                        "edge_ngram_tokenizer", Map.of(
+                                                "type", "edge_ngram",
+                                                "min_gram", 1,
+                                                "max_gram", 20,
+                                                "token_chars", List.of("letter", "digit")
+                                        ),
+                                        "ngram_tokenizer", Map.of(
+                                                "type", "ngram",
+                                                "min_gram", 1,
+                                                "max_gram", 10,
+                                                "token_chars", List.of("letter", "digit")
+                                        )
+                                )
+                        )
+                ),
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "name", Map.of(
@@ -55,28 +87,19 @@ public class ZincSearchClient {
                                         "analyzer", "edge_ngram_analyzer",
                                         "search_analyzer", "standard"
                                 ),
-                                "brandName", Map.of("type", "text"),
-                                "categoryName", Map.of("type", "text"),
+                                "brandName", Map.of(
+                                        "type", "text",
+                                        "analyzer", "edge_ngram_analyzer",
+                                        "search_analyzer", "standard"
+                                ),
+                                "categoryName", Map.of(
+                                        "type", "text",
+                                        "analyzer", "edge_ngram_analyzer",
+                                        "search_analyzer", "standard"
+                                ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
                                 "clickCount", Map.of("type", "integer")
-                        )
-                ),
-                "analysis", Map.of(
-                        "analyzer", Map.of(
-                                "edge_ngram_analyzer", Map.of(
-                                        "type", "custom",
-                                        "tokenizer", "edge_ngram_tokenizer",
-                                        "filter", List.of("lowercase")
-                                )
-                        ),
-                        "tokenizer", Map.of(
-                                "edge_ngram_tokenizer", Map.of(
-                                        "type", "edge_ngram",
-                                        "min_gram", 1,
-                                        "max_gram", 20,
-                                        "token_chars", List.of("letter", "digit", "symbol")
-                                )
                         )
                 )
         );
@@ -132,18 +155,44 @@ public class ZincSearchClient {
     }
 
     // ── 키워드 검색 ───────────────────────────────────────────────────
+    // bool 쿼리로 should 조합: phrase_prefix(높은 정확도) + multi_match(부분 매칭)
+    // minimum_should_match=1 로 하나라도 매칭되면 결과 반환
 
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
+
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "multi_match", Map.of(
-                                "query", keyword,
-                                "fields", List.of("name", "brandName", "categoryName")
+                        "bool", Map.of(
+                                "should", List.of(
+                                        Map.of("match_phrase_prefix", Map.of(
+                                                "name", Map.of(
+                                                        "query", keyword,
+                                                        "boost", 3
+                                                )
+                                        )),
+                                        Map.of("multi_match", Map.of(
+                                                "query", keyword,
+                                                "fields", List.of("name^3", "brandName^2", "categoryName"),
+                                                "type", "best_fields",
+                                                "fuzziness", "AUTO",
+                                                "prefix_length", 1
+                                        )),
+                                        Map.of("multi_match", Map.of(
+                                                "query", keyword,
+                                                "fields", List.of("name^2", "brandName", "categoryName"),
+                                                "type", "phrase_prefix"
+                                        ))
+                                ),
+                                "minimum_should_match", 1
                         )
                 ),
-                "size", 50
+                "size", 50,
+                "sort", List.of(
+                        Map.of("_score", Map.of("order", "desc"))
+                )
         );
+
         try {
             String body = objectMapper.writeValueAsString(query);
             ResponseEntity<String> res = restTemplate.exchange(
@@ -164,6 +213,19 @@ public class ZincSearchClient {
                     new HttpEntity<>(ndjson, headers()), String.class);
         } catch (Exception e) {
             log.error("ZincSearch bulk 색인 실패: {}", e.getMessage());
+        }
+    }
+
+    // ── 인덱스 삭제 (재인덱싱 시 활용) ────────────────────────────────
+
+    public void deleteIndex() {
+        String url = props.getUrl() + "/api/index/" + props.getIndex();
+        try {
+            restTemplate.exchange(url, HttpMethod.DELETE,
+                    new HttpEntity<>(headers()), String.class);
+            log.info("ZincSearch index 삭제 완료: {}", props.getIndex());
+        } catch (Exception e) {
+            log.warn("ZincSearch index 삭제 실패: {}", e.getMessage());
         }
     }
 }
