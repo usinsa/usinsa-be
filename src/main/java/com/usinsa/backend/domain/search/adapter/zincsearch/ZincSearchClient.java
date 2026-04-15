@@ -52,7 +52,6 @@ public class ZincSearchClient {
                 "settings", Map.of(
                         "analysis", Map.of(
                                 "analyzer", Map.of(
-                                        //ngram 모든 부분 문자열 생성 (한글 포함)
                                         "korean_ngram_analyzer", Map.of(
                                                 "type", "custom",
                                                 "tokenizer", "korean_ngram_tokenizer",
@@ -64,16 +63,13 @@ public class ZincSearchClient {
                                                 "type", "ngram",
                                                 "min_gram", 1,
                                                 "max_gram", 10,
-                                                // token_chars 빈 배열 = 공백 외 모든 문자(한글 포함) 토큰화
-                                                "token_chars", List.of()
+                                                "token_chars", List.of()   // 빈 배열: 한글 포함 모든 문자 토큰화
                                         )
                                 )
                         )
                 ),
                 "mappings", Map.of(
                         "properties", Map.of(
-                                // 색인: ngram 분석기(한글 부분 매칭)
-                                // 검색: standard(입력 키워드를 그대로 사용)
                                 "name", Map.of(
                                         "type", "text",
                                         "analyzer", "korean_ngram_analyzer",
@@ -104,6 +100,23 @@ public class ZincSearchClient {
         } catch (Exception e) {
             log.warn("Index 이미 존재하거나 생성 실패: {}", e.getMessage());
         }
+    }
+
+    // ── 인덱스 준비 대기 ──────────────────────────────────────────────
+    public void waitForIndexReady() {
+        String url = props.getUrl() + "/api/" + props.getIndex() + "/_count";
+        int maxRetry = 10;
+        for (int i = 0; i < maxRetry; i++) {
+            try {
+                Thread.sleep(500);
+                restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers()), String.class);
+                log.info("ZincSearch index 준비 완료 (시도 {}회)", i + 1);
+                return;
+            } catch (Exception e) {
+                log.info("ZincSearch index 준비 대기 중... ({}/{})", i + 1, maxRetry);
+            }
+        }
+        log.warn("ZincSearch index 준비 확인 실패 - 색인을 계속 진행합니다");
     }
 
     // ── 단건 색인 ─────────────────────────────────────────────────────
@@ -147,6 +160,7 @@ public class ZincSearchClient {
     }
 
     // ── 키워드 검색 ───────────────────────────────────────────────────
+
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
@@ -154,13 +168,11 @@ public class ZincSearchClient {
                 "query", Map.of(
                         "bool", Map.of(
                                 "should", List.of(
-                                        // 완전 문구 매칭 (가장 높은 우선순위)
                                         Map.of("multi_match", Map.of(
                                                 "query", keyword,
                                                 "fields", List.of("name^4", "brandName^2", "categoryName"),
                                                 "type", "phrase"
                                         )),
-                                        // 개별 토큰 매칭 (부분 매칭)
                                         Map.of("multi_match", Map.of(
                                                 "query", keyword,
                                                 "fields", List.of("name^3", "brandName^2", "categoryName"),
