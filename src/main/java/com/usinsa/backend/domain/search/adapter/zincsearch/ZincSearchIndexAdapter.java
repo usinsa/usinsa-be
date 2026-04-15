@@ -52,10 +52,6 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
         return client.count();
     }
 
-    /**
-     * 인덱스 초기화: 기존 인덱스를 삭제 후 재생성하여 매핑/분석기 설정을 반영
-     * (설정 변경 시 기존 인덱스가 남아 있으면 새 분석기가 적용되지 않음)
-     */
     @Override
     public void initIndex() {
         client.deleteIndex();

@@ -42,7 +42,6 @@ public class ZincSearchClient {
     }
 
     // ── 인덱스 생성 ───────────────────────────────────────────────────
-    // ZincSearch: analysis 설정은 mappings와 동일 레벨(최상위)에 위치해야 함
 
     public void createIndexIfNotExists() {
         String url = props.getUrl() + "/api/index";
@@ -53,48 +52,41 @@ public class ZincSearchClient {
                 "settings", Map.of(
                         "analysis", Map.of(
                                 "analyzer", Map.of(
-                                        "edge_ngram_analyzer", Map.of(
+                                        //ngram 모든 부분 문자열 생성 (한글 포함)
+                                        "korean_ngram_analyzer", Map.of(
                                                 "type", "custom",
-                                                "tokenizer", "edge_ngram_tokenizer",
-                                                "filter", List.of("lowercase")
-                                        ),
-                                        "ngram_analyzer", Map.of(
-                                                "type", "custom",
-                                                "tokenizer", "ngram_tokenizer",
+                                                "tokenizer", "korean_ngram_tokenizer",
                                                 "filter", List.of("lowercase")
                                         )
                                 ),
                                 "tokenizer", Map.of(
-                                        "edge_ngram_tokenizer", Map.of(
-                                                "type", "edge_ngram",
-                                                "min_gram", 1,
-                                                "max_gram", 20,
-                                                "token_chars", List.of("letter", "digit")
-                                        ),
-                                        "ngram_tokenizer", Map.of(
+                                        "korean_ngram_tokenizer", Map.of(
                                                 "type", "ngram",
                                                 "min_gram", 1,
                                                 "max_gram", 10,
-                                                "token_chars", List.of("letter", "digit")
+                                                // token_chars 빈 배열 = 공백 외 모든 문자(한글 포함) 토큰화
+                                                "token_chars", List.of()
                                         )
                                 )
                         )
                 ),
                 "mappings", Map.of(
                         "properties", Map.of(
+                                // 색인: ngram 분석기(한글 부분 매칭)
+                                // 검색: standard(입력 키워드를 그대로 사용)
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "edge_ngram_analyzer",
+                                        "analyzer", "korean_ngram_analyzer",
                                         "search_analyzer", "standard"
                                 ),
                                 "brandName", Map.of(
                                         "type", "text",
-                                        "analyzer", "edge_ngram_analyzer",
+                                        "analyzer", "korean_ngram_analyzer",
                                         "search_analyzer", "standard"
                                 ),
                                 "categoryName", Map.of(
                                         "type", "text",
-                                        "analyzer", "edge_ngram_analyzer",
+                                        "analyzer", "korean_ngram_analyzer",
                                         "search_analyzer", "standard"
                                 ),
                                 "price", Map.of("type", "long"),
@@ -155,9 +147,6 @@ public class ZincSearchClient {
     }
 
     // ── 키워드 검색 ───────────────────────────────────────────────────
-    // bool 쿼리로 should 조합: phrase_prefix(높은 정확도) + multi_match(부분 매칭)
-    // minimum_should_match=1 로 하나라도 매칭되면 결과 반환
-
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
@@ -165,23 +154,18 @@ public class ZincSearchClient {
                 "query", Map.of(
                         "bool", Map.of(
                                 "should", List.of(
-                                        Map.of("match_phrase_prefix", Map.of(
-                                                "name", Map.of(
-                                                        "query", keyword,
-                                                        "boost", 3
-                                                )
+                                        // 완전 문구 매칭 (가장 높은 우선순위)
+                                        Map.of("multi_match", Map.of(
+                                                "query", keyword,
+                                                "fields", List.of("name^4", "brandName^2", "categoryName"),
+                                                "type", "phrase"
                                         )),
+                                        // 개별 토큰 매칭 (부분 매칭)
                                         Map.of("multi_match", Map.of(
                                                 "query", keyword,
                                                 "fields", List.of("name^3", "brandName^2", "categoryName"),
                                                 "type", "best_fields",
-                                                "fuzziness", "AUTO",
-                                                "prefix_length", 1
-                                        )),
-                                        Map.of("multi_match", Map.of(
-                                                "query", keyword,
-                                                "fields", List.of("name^2", "brandName", "categoryName"),
-                                                "type", "phrase_prefix"
+                                                "operator", "or"
                                         ))
                                 ),
                                 "minimum_should_match", 1
@@ -216,7 +200,7 @@ public class ZincSearchClient {
         }
     }
 
-    // ── 인덱스 삭제 (재인덱싱 시 활용) ────────────────────────────────
+    // ── 인덱스 삭제 ───────────────────────────────────────────────────
 
     public void deleteIndex() {
         String url = props.getUrl() + "/api/index/" + props.getIndex();
