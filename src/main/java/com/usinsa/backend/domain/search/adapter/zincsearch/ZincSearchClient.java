@@ -104,19 +104,26 @@ public class ZincSearchClient {
 
     // ── 인덱스 준비 대기 ──────────────────────────────────────────────
     public void waitForIndexReady() {
-        String url = props.getUrl() + "/api/" + props.getIndex() + "/_count";
+        String url = props.getUrl() + "/api/index/" + props.getIndex();
+
         int maxRetry = 10;
         for (int i = 0; i < maxRetry; i++) {
             try {
                 Thread.sleep(500);
-                restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers()), String.class);
-                log.info("ZincSearch index 준비 완료 (시도 {}회)", i + 1);
-                return;
-            } catch (Exception e) {
-                log.info("ZincSearch index 준비 대기 중... ({}/{})", i + 1, maxRetry);
-            }
+                ResponseEntity<String> res = restTemplate.exchange(
+                        url,
+                        HttpMethod.GET,
+                        new HttpEntity<>(headers()),
+                        String.class
+                );
+                if (res.getStatusCode().is2xxSuccessful()) {
+                    log.info("Index 준비 완료");
+                    return;
+                }
+            } catch (Exception ignored) {}
+            log.info("Index 준비 대기 중...");
         }
-        log.warn("ZincSearch index 준비 확인 실패 - 색인을 계속 진행합니다");
+        throw new RuntimeException("Zinc index 준비 실패");
     }
 
     // ── 단건 색인 ─────────────────────────────────────────────────────
