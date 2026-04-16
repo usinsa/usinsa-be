@@ -63,7 +63,7 @@ public class ZincSearchClient {
                                                 "type", "ngram",
                                                 "min_gram", 1,
                                                 "max_gram", 10,
-                                                "token_chars", List.of()   // 빈 배열: 한글 포함 모든 문자 토큰화
+                                                "token_chars", List.of()
                                         )
                                 )
                         )
@@ -105,25 +105,19 @@ public class ZincSearchClient {
     // ── 인덱스 준비 대기 ──────────────────────────────────────────────
     public void waitForIndexReady() {
         String url = props.getUrl() + "/api/index/" + props.getIndex();
-
-        int maxRetry = 10;
-        for (int i = 0; i < maxRetry; i++) {
+        for (int i = 0; i < 10; i++) {
             try {
                 Thread.sleep(500);
                 ResponseEntity<String> res = restTemplate.exchange(
-                        url,
-                        HttpMethod.GET,
-                        new HttpEntity<>(headers()),
-                        String.class
-                );
+                        url, HttpMethod.GET, new HttpEntity<>(headers()), String.class);
                 if (res.getStatusCode().is2xxSuccessful()) {
-                    log.info("Index 준비 완료");
+                    log.info("ZincSearch index 준비 완료 ({}회 시도)", i + 1);
                     return;
                 }
             } catch (Exception ignored) {}
-            log.info("Index 준비 대기 중...");
+            log.info("ZincSearch index 준비 대기 중... ({}/10)", i + 1);
         }
-        throw new RuntimeException("Zinc index 준비 실패");
+        log.warn("ZincSearch index 준비 확인 실패 - 색인을 계속 진행합니다");
     }
 
     // ── 단건 색인 ─────────────────────────────────────────────────────
@@ -171,23 +165,16 @@ public class ZincSearchClient {
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
+        String escaped = escapeQueryString(keyword);
+        String queryExpr = String.format(
+                "name:*%s* OR brandName:*%s* OR categoryName:*%s*",
+                escaped, escaped, escaped
+        );
+
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "bool", Map.of(
-                                "should", List.of(
-                                        Map.of("multi_match", Map.of(
-                                                "query", keyword,
-                                                "fields", List.of("name^4", "brandName^2", "categoryName"),
-                                                "type", "phrase"
-                                        )),
-                                        Map.of("multi_match", Map.of(
-                                                "query", keyword,
-                                                "fields", List.of("name^3", "brandName^2", "categoryName"),
-                                                "type", "best_fields",
-                                                "operator", "or"
-                                        ))
-                                ),
-                                "minimum_should_match", 1
+                        "query_string", Map.of(
+                                "query", queryExpr
                         )
                 ),
                 "size", 50,
@@ -198,6 +185,7 @@ public class ZincSearchClient {
 
         try {
             String body = objectMapper.writeValueAsString(query);
+            log.debug("ZincSearch query: {}", body);
             ResponseEntity<String> res = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers()), String.class);
             return objectMapper.readTree(res.getBody());
@@ -205,6 +193,11 @@ public class ZincSearchClient {
             log.error("ZincSearch 검색 실패 keyword={}: {}", keyword, e.getMessage());
             return objectMapper.createObjectNode();
         }
+    }
+
+    // Lucene query_string 특수문자 이스케이프
+    private String escapeQueryString(String keyword) {
+        return keyword.replaceAll("[+\\-=&|><!(){}\\[\\]^\"~*?:\\\\/]", "\\\\$0");
     }
 
     // ── Bulk 색인 ─────────────────────────────────────────────────────
