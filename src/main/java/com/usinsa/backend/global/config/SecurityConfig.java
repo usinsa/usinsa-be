@@ -44,14 +44,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/zinc-debug/**").permitAll()
                 // 인증 API
                 .requestMatchers(
                     "/api/v1/auth/login",
                     "/api/v1/auth/logout",
                     "/api/v1/auth/signup",
                     "/api/v1/auth/refresh",
-                    "/api/v1/auth/me",
-                    "/api/v1/products/reindex"
+                    "/api/v1/auth/me"
                 ).permitAll()
                 // OAuth2
                 .requestMatchers(
