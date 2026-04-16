@@ -73,17 +73,17 @@ public class ZincSearchClient {
                                 "name", Map.of(
                                         "type", "text",
                                         "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "standard"
+                                        "search_analyzer", "korean_ngram_analyzer"
                                 ),
                                 "brandName", Map.of(
                                         "type", "text",
                                         "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "standard"
+                                        "search_analyzer", "korean_ngram_analyzer"
                                 ),
                                 "categoryName", Map.of(
                                         "type", "text",
                                         "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "standard"
+                                        "search_analyzer", "korean_ngram_analyzer"
                                 ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
@@ -165,27 +165,19 @@ public class ZincSearchClient {
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
-        String escaped = escapeQueryString(keyword);
-        String queryExpr = String.format(
-                "name:*%s* OR brandName:*%s* OR categoryName:*%s*",
-                escaped, escaped, escaped
-        );
-
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "query_string", Map.of(
-                                "query", queryExpr
+                        "multi_match", Map.of(
+                                "query", keyword,
+                                "fields", List.of("name^3", "brandName^2", "categoryName"),
+                                "type", "best_fields"
                         )
                 ),
-                "size", 50,
-                "sort", List.of(
-                        Map.of("_score", Map.of("order", "desc"))
-                )
+                "size", 50
         );
 
         try {
             String body = objectMapper.writeValueAsString(query);
-            log.debug("ZincSearch query: {}", body);
             ResponseEntity<String> res = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers()), String.class);
             return objectMapper.readTree(res.getBody());
