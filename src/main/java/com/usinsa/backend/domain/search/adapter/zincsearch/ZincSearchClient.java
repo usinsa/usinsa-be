@@ -187,23 +187,6 @@ public class ZincSearchClient {
         }
     }
 
-    // Lucene query_string 특수문자 이스케이프
-    private String escapeQueryString(String keyword) {
-        return keyword.replaceAll("[+\\-=&|><!(){}\\[\\]^\"~*?:\\\\/]", "\\\\$0");
-    }
-
-    // ── Bulk 색인 ─────────────────────────────────────────────────────
-
-    public void bulkIndex(String ndjson) {
-        String url = props.getUrl() + "/api/_bulk";
-        try {
-            restTemplate.exchange(url, HttpMethod.POST,
-                    new HttpEntity<>(ndjson, headers()), String.class);
-        } catch (Exception e) {
-            log.error("ZincSearch bulk 색인 실패: {}", e.getMessage());
-        }
-    }
-
     // ── 인덱스 삭제 ───────────────────────────────────────────────────
 
     public void deleteIndex() {

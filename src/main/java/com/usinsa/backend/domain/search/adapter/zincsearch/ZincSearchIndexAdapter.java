@@ -19,7 +19,6 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
 
     private final ZincSearchClient client;
     private final ObjectMapper objectMapper;
-    private final ZincSearchProperties props;
 
     @Override
     public void save(ProductSearchDto dto) {
@@ -35,18 +34,10 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
     public void saveAll(List<ProductSearchDto> docs) {
         if (docs.isEmpty()) return;
 
-        StringBuilder sb = new StringBuilder();
         for (ProductSearchDto dto : docs) {
-            sb.append("{\"index\":{\"_index\":\"")
-                    .append(props.getIndex())
-                    .append("\",\"_id\":\"")
-                    .append(dto.getId())
-                    .append("\"}}\n");
-            sb.append(toNdjsonLine(dto)).append("\n");
+            client.index(String.valueOf(dto.getId()), toMap(dto));
         }
-        client.bulkIndex(sb.toString());
     }
-
     @Override
     public long count() {
         return client.count();
@@ -71,13 +62,5 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
                 "likeCount",    dto.getLikeCount(),
                 "clickCount",   dto.getClickCount()
         );
-    }
-
-    private String toNdjsonLine(ProductSearchDto dto) {
-        try {
-            return objectMapper.writeValueAsString(toMap(dto));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }
