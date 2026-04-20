@@ -167,15 +167,19 @@ public class ZincSearchClient {
         Map<String, Object> query = Map.of(
                 "query", Map.of(
                         "bool", Map.of(
-                                "must", List.of(
+                                "should", List.of(
+                                        Map.of("match_phrase", Map.of(
+                                                "name", Map.of(
+                                                        "query", keyword,
+                                                        "boost", 5
+                                                )
+                                        )),
                                         Map.of("match", Map.of(
                                                 "name", Map.of(
                                                         "query", keyword,
                                                         "operator", "and"
                                                 )
-                                        ))
-                                ),
-                                "should", List.of(
+                                        )),
                                         Map.of("match", Map.of(
                                                 "brandName", Map.of(
                                                         "query", keyword,
