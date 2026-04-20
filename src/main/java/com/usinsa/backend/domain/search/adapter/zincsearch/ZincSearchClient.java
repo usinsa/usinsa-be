@@ -70,7 +70,8 @@ public class ZincSearchClient {
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "name", Map.of(
-                                        "type", "text"
+                                        "type", "text",
+                                        "analyzer", "standard"
                                 ),
                                 "brandName", Map.of("type", "text"),
                                 "categoryName", Map.of("type", "text"),
@@ -163,8 +164,12 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "match_phrase", Map.of(
-                                "name", keyword
+                        "bool", Map.of(
+                                "must", List.of(
+                                        Map.of(
+                                                "match_phrase", Map.of("name", keyword)
+                                        )
+                                )
                         )
                 )
         );
