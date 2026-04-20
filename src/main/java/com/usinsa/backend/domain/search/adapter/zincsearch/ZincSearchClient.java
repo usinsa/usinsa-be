@@ -66,7 +66,7 @@ public class ZincSearchClient {
                                 "tokenizer", Map.of(
                                         "korean_ngram_tokenizer", Map.of(
                                                 "type", "ngram",
-                                                "min_gram", 1,
+                                                "min_gram", 2,
                                                 "max_gram", 10
                                         )
                                 )
@@ -174,7 +174,9 @@ public class ZincSearchClient {
                         "multi_match", Map.of(
                                 "query", keyword,
                                 "fields", List.of("name^3", "brandName^2", "categoryName"),
-                                "type", "best_fields"
+                                "type", "best_fields",
+                                "operator", "and",
+                                "minimum_should_match", "70%"
                         )
                 ),
                 "size", 50
