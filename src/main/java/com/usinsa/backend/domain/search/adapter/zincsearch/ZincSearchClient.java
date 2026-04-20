@@ -52,9 +52,14 @@ public class ZincSearchClient {
                 "settings", Map.of(
                         "analysis", Map.of(
                                 "analyzer", Map.of(
-                                        "korean_ngram_analyzer", Map.of(
+                                        "korean_index_analyzer", Map.of(
                                                 "type", "custom",
                                                 "tokenizer", "korean_ngram_tokenizer",
+                                                "filter", List.of("lowercase")
+                                        ),
+                                        "korean_search_analyzer", Map.of(
+                                                "type", "custom",
+                                                "tokenizer", "standard",
                                                 "filter", List.of("lowercase")
                                         )
                                 ),
@@ -62,8 +67,7 @@ public class ZincSearchClient {
                                         "korean_ngram_tokenizer", Map.of(
                                                 "type", "ngram",
                                                 "min_gram", 1,
-                                                "max_gram", 10,
-                                                "token_chars", List.of()
+                                                "max_gram", 10
                                         )
                                 )
                         )
@@ -72,18 +76,18 @@ public class ZincSearchClient {
                         "properties", Map.of(
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "korean_ngram_analyzer"
+                                        "analyzer", "korean_index_analyzer",
+                                        "search_analyzer", "korean_search_analyzer"
                                 ),
                                 "brandName", Map.of(
                                         "type", "text",
-                                        "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "korean_ngram_analyzer"
+                                        "analyzer", "korean_index_analyzer",
+                                        "search_analyzer", "korean_search_analyzer"
                                 ),
                                 "categoryName", Map.of(
                                         "type", "text",
-                                        "analyzer", "korean_ngram_analyzer",
-                                        "search_analyzer", "korean_ngram_analyzer"
+                                        "analyzer", "korean_index_analyzer",
+                                        "search_analyzer", "korean_search_analyzer"
                                 ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
