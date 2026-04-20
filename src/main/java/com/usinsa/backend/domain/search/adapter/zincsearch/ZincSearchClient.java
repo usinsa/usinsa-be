@@ -84,11 +84,6 @@ public class ZincSearchClient {
                                         "analyzer", "korean_index_analyzer",
                                         "search_analyzer", "korean_search_analyzer"
                                 ),
-                                "categoryName", Map.of(
-                                        "type", "text",
-                                        "analyzer", "korean_index_analyzer",
-                                        "search_analyzer", "korean_search_analyzer"
-                                ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
                                 "clickCount", Map.of("type", "integer")
@@ -173,7 +168,7 @@ public class ZincSearchClient {
                 "query", Map.of(
                         "multi_match", Map.of(
                                 "query", keyword,
-                                "fields", List.of("name^3", "brandName^2", "categoryName"),
+                                "fields", List.of("name^3", "brandName^2"),
                                 "type", "best_fields",
                                 "operator", "and",
                                 "minimum_should_match", "70%"
