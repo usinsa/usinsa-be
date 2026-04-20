@@ -70,8 +70,7 @@ public class ZincSearchClient {
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "name", Map.of(
-                                        "type", "text",
-                                        "analyzer", "ngram"
+                                        "type", "text"
                                 ),
                                 "brandName", Map.of("type", "text"),
                                 "categoryName", Map.of("type", "text"),
@@ -84,11 +83,18 @@ public class ZincSearchClient {
 
         try {
             String json = objectMapper.writeValueAsString(body);
-            restTemplate.exchange(url, HttpMethod.POST,
-                    new HttpEntity<>(json, headers()), String.class);
+            ResponseEntity<String> res = restTemplate.exchange(
+                    url, HttpMethod.POST,
+                    new HttpEntity<>(json, headers()), String.class
+            );
+
+            if (!res.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("인덱스 생성 실패: " + res.getBody());
+            }
+
             log.info("ZincSearch index 생성 완료");
         } catch (Exception e) {
-            log.warn("Index 이미 존재하거나 생성 실패: {}", e.getMessage());
+            throw new RuntimeException("ZincSearch index 생성 실패", e);
         }
     }
 
@@ -157,7 +163,7 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "match", Map.of(
+                        "match_phrase", Map.of(
                                 "name", keyword
                         )
                 )
@@ -178,12 +184,15 @@ public class ZincSearchClient {
 
     public void deleteIndex() {
         String url = props.getUrl() + "/api/index/" + props.getIndex();
-        try {
-            restTemplate.exchange(url, HttpMethod.DELETE,
-                    new HttpEntity<>(headers()), String.class);
-            log.info("ZincSearch index 삭제 완료: {}", props.getIndex());
-        } catch (Exception e) {
-            log.warn("ZincSearch index 삭제 실패: {}", e.getMessage());
+        ResponseEntity<String> res = restTemplate.exchange(
+                url, HttpMethod.DELETE,
+                new HttpEntity<>(headers()), String.class
+        );
+
+        if (!res.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("인덱스 삭제 실패");
         }
+
+        log.info("ZincSearch index 삭제 완료: {}", props.getIndex());
     }
 }

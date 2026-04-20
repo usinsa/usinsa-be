@@ -46,6 +46,11 @@ public class ZincSearchIndexAdapter implements ProductIndexPort {
     @Override
     public void initIndex() {
         client.deleteIndex();
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ignored) {}
+
         client.createIndexIfNotExists();
         client.waitForIndexReady();
     }
