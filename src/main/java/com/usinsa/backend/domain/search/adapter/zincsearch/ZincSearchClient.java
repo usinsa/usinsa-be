@@ -49,36 +49,12 @@ public class ZincSearchClient {
         Map<String, Object> body = Map.of(
                 "name", props.getIndex(),
                 "storage_type", "disk",
-                "settings", Map.of(
-                        "analysis", Map.of(
-                                "analyzer", Map.of(
-                                        "korean_analyzer", Map.of(
-                                                "type", "custom",
-                                                "tokenizer", "korean_ngram_tokenizer",
-                                                "filter", List.of("lowercase")
-                                        )
-                                ),
-                                "tokenizer", Map.of(
-                                        "korean_ngram_tokenizer", Map.of(
-                                                "type", "ngram",
-                                                "min_gram", 2,
-                                                "max_gram", 5
-                                        )
-                                )
-                        )
-                ),
+                "settings", Map.of(),
                 "mappings", Map.of(
                         "properties", Map.of(
-                                "name", Map.of(
-                                        "type", "text",
-                                        "analyzer", "korean_analyzer",
-                                        "search_analyzer", "korean_analyzer"
-                                ),
-                                "brandName", Map.of(
-                                        "type", "text",
-                                        "analyzer", "korean_analyzer",
-                                        "search_analyzer", "korean_analyzer"
-                                ),
+                                "name", Map.of("type", "text"),
+                                "brandName", Map.of("type", "text"),
+                                "categoryName", Map.of("type", "text"),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
                                 "clickCount", Map.of("type", "integer")
@@ -161,14 +137,19 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "multi_match", Map.of(
-                                "query", keyword,
-                                "fields", List.of("name^3", "brandName^2"),
-                                "type", "best_fields",
-                                "operator", "and"
+                        "bool", Map.of(
+                                "should", List.of(
+                                        Map.of("match_phrase", Map.of("name", Map.of(
+                                                "query", keyword,
+                                                "boost", 5
+                                        ))),
+                                        Map.of("term", Map.of(
+                                                "categoryName.keyword", keyword
+                                        ))
+                                ),
+                                "minimum_should_match", 1
                         )
-                ),
-                "size", 50
+                )
         );
 
         try {
