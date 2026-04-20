@@ -55,7 +55,7 @@ public class ZincSearchClient {
                                         "ngram_tokenizer", Map.of(
                                                 "type", "ngram",
                                                 "min_gram", 2,
-                                                "max_gram", 3,
+                                                "max_gram", 5,
                                                 "token_chars", List.of("letter", "digit")
                                         )
                                 ),
@@ -158,13 +158,25 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "multi_match", Map.of(
-                                "query", keyword,
-                                "fields", List.of("name^3", "categoryName", "brandName"),
-                                "type", "best_fields",
-                                "operator", "and"
+                        "bool", Map.of(
+                                "must", List.of(
+                                        Map.of(
+                                                "multi_match", Map.of(
+                                                        "query", keyword,
+                                                        "fields", List.of("name^3", "categoryName", "brandName"),
+                                                        "type", "best_fields",
+                                                        "operator", "and"
+                                                )
+                                        )
+                                ),
+                                "filter", List.of(
+                                        Map.of(
+                                                "match_phrase", Map.of("name", keyword)
+                                        )
+                                )
                         )
-                )
+                ),
+                "min_score", 2.0
         );
 
         try {
