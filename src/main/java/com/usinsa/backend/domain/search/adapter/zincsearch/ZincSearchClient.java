@@ -71,8 +71,7 @@ public class ZincSearchClient {
                         "properties", Map.of(
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "ngram",
-                                        "search_analyzer", "standard"
+                                        "analyzer", "ngram"
                                 ),
                                 "brandName", Map.of("type", "text"),
                                 "categoryName", Map.of("type", "text"),
@@ -158,25 +157,10 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "bool", Map.of(
-                                "must", List.of(
-                                        Map.of(
-                                                "multi_match", Map.of(
-                                                        "query", keyword,
-                                                        "fields", List.of("name^3", "categoryName", "brandName"),
-                                                        "type", "best_fields",
-                                                        "operator", "and"
-                                                )
-                                        )
-                                ),
-                                "filter", List.of(
-                                        Map.of(
-                                                "match_phrase", Map.of("name", keyword)
-                                        )
-                                )
+                        "match", Map.of(
+                                "name", keyword
                         )
-                ),
-                "min_score", 2.0
+                )
         );
 
         try {
