@@ -49,10 +49,31 @@ public class ZincSearchClient {
         Map<String, Object> body = Map.of(
                 "name", props.getIndex(),
                 "storage_type", "disk",
-                "settings", Map.of(),
+                "settings", Map.of(
+                        "analysis", Map.of(
+                                "tokenizer", Map.of(
+                                        "ngram_tokenizer", Map.of(
+                                                "type", "ngram",
+                                                "min_gram", 2,
+                                                "max_gram", 3,
+                                                "token_chars", List.of("letter", "digit")
+                                        )
+                                ),
+                                "analyzer", Map.of(
+                                        "ngram", Map.of(
+                                                "type", "custom",
+                                                "tokenizer", "ngram_tokenizer"
+                                        )
+                                )
+                        )
+                ),
                 "mappings", Map.of(
                         "properties", Map.of(
-                                "name", Map.of("type", "text"),
+                                "name", Map.of(
+                                        "type", "text",
+                                        "analyzer", "ngram",
+                                        "search_analyzer", "standard"
+                                ),
                                 "brandName", Map.of("type", "text"),
                                 "categoryName", Map.of("type", "text"),
                                 "price", Map.of("type", "long"),
@@ -137,15 +158,8 @@ public class ZincSearchClient {
 
         Map<String, Object> query = Map.of(
                 "query", Map.of(
-                        "bool", Map.of(
-                                "must", List.of(
-                                        Map.of("match", Map.of(
-                                                "name", Map.of(
-                                                        "query", keyword,
-                                                        "operator", "and"
-                                                )
-                                        ))
-                                )
+                        "match_phrase", Map.of(
+                                "name", keyword
                         )
                 )
         );
