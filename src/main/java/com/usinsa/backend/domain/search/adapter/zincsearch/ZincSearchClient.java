@@ -143,14 +143,17 @@ public class ZincSearchClient {
         }
     }
 
-    // ── 키워드 검색 (match_phrase -> match 쿼리로 수정) ─────────────────
+    // ── 키워드 검색 ───────────────────────────────────────────────────
     public JsonNode search(String keyword) {
-        String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
+        String url = props.getUrl() + "/es/" + props.getIndex() + "/_search";
 
         Map<String, Object> queryBody = Map.of(
                 "query", Map.of(
-                        "match_phrase", Map.of(
-                                "name", keyword
+                        "multi_match", Map.of(
+                                "query", keyword,
+                                "fields", List.of("name", "brandName", "categoryName"),
+                                "type", "phrase",
+                                "zero_terms_query", "none"
                         )
                 ),
                 "size", 50
