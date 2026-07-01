@@ -147,27 +147,24 @@ public class ZincSearchClient {
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
-        // 수정: 지나치게 엄격한 match_phrase 대신 일반 match를 사용하여 형태소 분석 효율을 극대화합니다.
-        Map<String, Object> query = Map.of(
+        Map<String, Object> queryBody = Map.of(
                 "query", Map.of(
-                        "bool", Map.of(
-                                "must", List.of(
-                                        Map.of(
-                                                "match", Map.of("name", keyword)
-                                        )
-                                )
+                        "match_phrase", Map.of(
+                                "name", keyword
                         )
-                )
+                ),
+                "size", 50
         );
 
         try {
-            String body = objectMapper.writeValueAsString(query);
+            String jsonBody = objectMapper.writeValueAsString(queryBody);
             ResponseEntity<String> res = restTemplate.exchange(
-                    url, HttpMethod.POST, new HttpEntity<>(body, headers()), String.class);
+                    url, HttpMethod.POST,
+                    new HttpEntity<>(jsonBody, headers()), String.class
+            );
             return objectMapper.readTree(res.getBody());
         } catch (Exception e) {
-            log.error("ZincSearch 검색 실패 keyword={}: {}", keyword, e.getMessage());
-            return objectMapper.createObjectNode();
+            throw new RuntimeException("ZincSearch 검색 중 오류 발생", e);
         }
     }
 
