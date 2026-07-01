@@ -44,7 +44,6 @@ public class ZincSearchClient {
     public void createIndexIfNotExists() {
         String url = props.getUrl() + "/api/index";
 
-        // ZincSearch 자체 내장형 아시아권 분석기인 'gse'를 각 텍스트 필드에 직접 매핑합니다.
         Map<String, Object> body = Map.of(
                 "name", props.getIndex(),
                 "storage_type", "disk",
@@ -52,18 +51,18 @@ public class ZincSearchClient {
                         "properties", Map.of(
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "gse",
-                                        "search_analyzer", "gse"
+                                        "analyzer", "cjk",          // 수정: gse -> cjk
+                                        "search_analyzer", "cjk"   // 수정: gse -> cjk
                                 ),
                                 "brandName", Map.of(
                                         "type", "text",
-                                        "analyzer", "gse",
-                                        "search_analyzer", "gse"
+                                        "analyzer", "cjk",          // 수정: gse -> cjk
+                                        "search_analyzer", "cjk"
                                 ),
                                 "categoryName", Map.of(
                                         "type", "text",
-                                        "analyzer", "gse",
-                                        "search_analyzer", "gse"
+                                        "analyzer", "cjk",          // 수정: gse -> cjk
+                                        "search_analyzer", "cjk"
                                 ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
@@ -83,7 +82,7 @@ public class ZincSearchClient {
                 throw new RuntimeException("인덱스 생성 실패: " + res.getBody());
             }
 
-            log.info("ZincSearch index 생성 완료 (gse 분석기 적용)");
+            log.info("ZincSearch index 생성 완료 (cjk 분석기 적용)");
         } catch (Exception e) {
             throw new RuntimeException("ZincSearch index 생성 실패", e);
         }
