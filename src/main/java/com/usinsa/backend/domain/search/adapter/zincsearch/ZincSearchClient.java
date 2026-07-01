@@ -175,15 +175,25 @@ public class ZincSearchClient {
     // ── 인덱스 삭제 ───────────────────────────────────────────────────
     public void deleteIndex() {
         String url = props.getUrl() + "/api/index/" + props.getIndex();
-        ResponseEntity<String> res = restTemplate.exchange(
-                url, HttpMethod.DELETE,
-                new HttpEntity<>(headers()), String.class
-        );
+        try {
+            ResponseEntity<String> res = restTemplate.exchange(
+                    url, HttpMethod.DELETE,
+                    new HttpEntity<>(headers()), String.class
+            );
 
-        if (!res.getStatusCode().is2xxSuccessful()) {
-            throw new RuntimeException("인덱스 삭제 실패");
+            if (!res.getStatusCode().is2xxSuccessful()) {
+                throw new RuntimeException("인덱스 삭제 실패");
+            }
+            log.info("ZincSearch index 삭제 완료: {}", props.getIndex());
+
+        } catch (org.springframework.web.client.HttpClientErrorException.BadRequest e) {
+            if (e.getResponseBodyAsString().contains("does not exists")) {
+                log.info("삭제하려는 인덱스({})가 이미 존재하지 않습니다. 인덱스 생성을 계속 진행합니다.", props.getIndex());
+            } else {
+                throw e;
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("인덱스 삭제 중 알 수 없는 오류 발생", e);
         }
-
-        log.info("ZincSearch index 삭제 완료: {}", props.getIndex());
     }
 }
