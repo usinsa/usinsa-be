@@ -31,7 +31,6 @@ public class ZincSearchClient {
     }
 
     // ── 공통 헤더 ─────────────────────────────────────────────────────
-
     HttpHeaders headers() {
         String creds = props.getUsername() + ":" + props.getPassword();
         String encoded = Base64.getEncoder().encodeToString(creds.getBytes());
@@ -41,40 +40,31 @@ public class ZincSearchClient {
         return h;
     }
 
-    // ── 인덱스 생성 ───────────────────────────────────────────────────
-
+    // ── 인덱스 생성 (GSE 분석기 적용 수정) ─────────────────────────────────
     public void createIndexIfNotExists() {
         String url = props.getUrl() + "/api/index";
 
+        // ZincSearch 자체 내장형 아시아권 분석기인 'gse'를 각 텍스트 필드에 직접 매핑합니다.
         Map<String, Object> body = Map.of(
                 "name", props.getIndex(),
                 "storage_type", "disk",
-                "settings", Map.of(
-                        "analysis", Map.of(
-                                "tokenizer", Map.of(
-                                        "ngram_tokenizer", Map.of(
-                                                "type", "ngram",
-                                                "min_gram", 2,
-                                                "max_gram", 5,
-                                                "token_chars", List.of("letter", "digit")
-                                        )
-                                ),
-                                "analyzer", Map.of(
-                                        "ngram", Map.of(
-                                                "type", "custom",
-                                                "tokenizer", "ngram_tokenizer"
-                                        )
-                                )
-                        )
-                ),
                 "mappings", Map.of(
                         "properties", Map.of(
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "standard"
+                                        "analyzer", "gse",
+                                        "search_analyzer", "gse"
                                 ),
-                                "brandName", Map.of("type", "text"),
-                                "categoryName", Map.of("type", "text"),
+                                "brandName", Map.of(
+                                        "type", "text",
+                                        "analyzer", "gse",
+                                        "search_analyzer", "gse"
+                                ),
+                                "categoryName", Map.of(
+                                        "type", "text",
+                                        "analyzer", "gse",
+                                        "search_analyzer", "gse"
+                                ),
                                 "price", Map.of("type", "long"),
                                 "likeCount", Map.of("type", "integer"),
                                 "clickCount", Map.of("type", "integer")
@@ -93,7 +83,7 @@ public class ZincSearchClient {
                 throw new RuntimeException("인덱스 생성 실패: " + res.getBody());
             }
 
-            log.info("ZincSearch index 생성 완료");
+            log.info("ZincSearch index 생성 완료 (gse 분석기 적용)");
         } catch (Exception e) {
             throw new RuntimeException("ZincSearch index 생성 실패", e);
         }
@@ -118,7 +108,6 @@ public class ZincSearchClient {
     }
 
     // ── 단건 색인 ─────────────────────────────────────────────────────
-
     public void index(String id, Map<String, Object> doc) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_doc/" + id;
         try {
@@ -131,7 +120,6 @@ public class ZincSearchClient {
     }
 
     // ── 단건 삭제 ─────────────────────────────────────────────────────
-
     public void delete(String id) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_doc/" + id;
         try {
@@ -143,7 +131,6 @@ public class ZincSearchClient {
     }
 
     // ── 전체 건수 조회 ────────────────────────────────────────────────
-
     public long count() {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_count";
         try {
@@ -157,17 +144,17 @@ public class ZincSearchClient {
         }
     }
 
-    // ── 키워드 검색 ───────────────────────────────────────────────────
-
+    // ── 키워드 검색 (match_phrase -> match 쿼리로 수정) ─────────────────
     public JsonNode search(String keyword) {
         String url = props.getUrl() + "/api/" + props.getIndex() + "/_search";
 
+        // 수정: 지나치게 엄격한 match_phrase 대신 일반 match를 사용하여 형태소 분석 효율을 극대화합니다.
         Map<String, Object> query = Map.of(
                 "query", Map.of(
                         "bool", Map.of(
                                 "must", List.of(
                                         Map.of(
-                                                "match_phrase", Map.of("name", keyword)
+                                                "match", Map.of("name", keyword)
                                         )
                                 )
                         )
@@ -186,7 +173,6 @@ public class ZincSearchClient {
     }
 
     // ── 인덱스 삭제 ───────────────────────────────────────────────────
-
     public void deleteIndex() {
         String url = props.getUrl() + "/api/index/" + props.getIndex();
         ResponseEntity<String> res = restTemplate.exchange(

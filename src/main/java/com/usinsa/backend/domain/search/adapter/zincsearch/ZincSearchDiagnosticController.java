@@ -13,16 +13,6 @@ import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * ZincSearch 디버깅 전용 컨트롤러 (prod 전용, 진단 후 제거 권장)
- *
- * 실행 순서:
- * 1. GET /zinc-debug/step1-index              → 인덱스 존재 확인
- * 2. GET /zinc-debug/step2-docs               → 색인 문서 확인
- * 3. GET /zinc-debug/step4-match?q=나이키      → match 쿼리 테스트
- * 4. GET /zinc-debug/step5-querystring?q=나이키 → query_string 테스트
- * 5. GET /zinc-debug/step6-compare?q=나이키    → 3가지 쿼리 결과 비교
- */
 @Slf4j
 @RestController
 @RequestMapping("/zinc-debug")
@@ -41,7 +31,7 @@ public class ZincSearchDiagnosticController {
         this.restTemplate = restTemplate;
     }
 
-    // Step 1 & 3: 인덱스 존재 + 매핑 확인
+    // Step 1: 인덱스 존재 + 매핑 확인 (gse 분석기가 프로퍼티에 잘 들어갔는지 JSON 눈으로 확인 가능)
     @GetMapping("/step1-index")
     public ResponseEntity<String> step1Index() {
         return rawGet("/api/index/" + props.getIndex());
@@ -54,36 +44,38 @@ public class ZincSearchDiagnosticController {
                 "{\"query\":{\"match_all\":{}},\"size\":3}");
     }
 
-    // Step 4: 최소 match 쿼리
+    // Step 4: 단일 필드 match 쿼리 테스트 (gse 분석기로 쪼개진 단어가 정상 매칭되는지 확인)
     @GetMapping("/step4-match")
     public ResponseEntity<String> step4Match(@RequestParam(defaultValue = "나이키") String q) {
         return rawPost("/api/" + props.getIndex() + "/_search",
                 "{\"query\":{\"match\":{\"name\":\"" + q + "\"}},\"size\":5}");
     }
 
-    // Step 5: query_string wildcard (현재 코드 방식)
-    @GetMapping("/step5-querystring")
-    public ResponseEntity<String> step5QueryString(@RequestParam(defaultValue = "나이키") String q) {
-        String expr = "name:*" + q + "* OR brandName:*" + q + "* OR categoryName:*" + q + "*";
+    // Step 5: 다중 필드 multi_match 테스트 (실제 서비스에서 유용하게 쓸 수 있는 고도화 쿼리)
+    @GetMapping("/step5-multimatch")
+    public ResponseEntity<String> step5MultiMatch(@RequestParam(defaultValue = "나이키") String q) {
         return rawPost("/api/" + props.getIndex() + "/_search",
-                "{\"query\":{\"query_string\":{\"query\":\"" + expr + "\"}},\"size\":5}");
+                "{\"query\":{\"multi_match\":{\"query\":\"" + q + "\",\"fields\":[\"name\",\"brandName\",\"categoryName\"]}},\"size\":5}");
     }
 
-    // Step 6: 3가지 쿼리 hit count 비교
+    // Step 6: 분석기 도입 후 쿼리별 성능/결과 hit count 비교 진단
     @GetMapping("/step6-compare")
     public ResponseEntity<Map<String, Object>> step6Compare(@RequestParam(defaultValue = "나이키") String q) {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        result.put("1_match",
+        // 1. 단일 상품명 match
+        result.put("1_match_name_only",
                 hitCount(rawPost("/api/" + props.getIndex() + "/_search",
                         "{\"query\":{\"match\":{\"name\":\"" + q + "\"}},\"size\":5}")));
 
-        result.put("2_multi_match",
+        // 2. 통합 다중 필드 match (추천 방식)
+        result.put("2_multi_match_fields",
                 hitCount(rawPost("/api/" + props.getIndex() + "/_search",
                         "{\"query\":{\"multi_match\":{\"query\":\"" + q + "\",\"fields\":[\"name\",\"brandName\",\"categoryName\"]}},\"size\":5}")));
 
+        // 3. 기존의 와일드카드 방식 (비교용으로 유지하되 gse와의 차이점 식별용)
         String expr = "name:*" + q + "* OR brandName:*" + q + "* OR categoryName:*" + q + "*";
-        result.put("3_query_string_wildcard",
+        result.put("3_legacy_query_string_wildcard",
                 hitCount(rawPost("/api/" + props.getIndex() + "/_search",
                         "{\"query\":{\"query_string\":{\"query\":\"" + expr + "\"}},\"size\":5}")));
 
