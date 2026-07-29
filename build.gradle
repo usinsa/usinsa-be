@@ -35,6 +35,9 @@ dependencies {
 
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // pgvector: Hibernate 네이티브 vector 타입 지원 (Spring Boot 3.2.5 -> Hibernate 6.4.4.Final과 버전 맞춤)
+    implementation 'org.hibernate.orm:hibernate-vector:6.4.4.Final'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'com.h2database:h2'

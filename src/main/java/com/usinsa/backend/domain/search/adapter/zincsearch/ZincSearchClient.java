@@ -51,17 +51,17 @@ public class ZincSearchClient {
                         "properties", Map.of(
                                 "name", Map.of(
                                         "type", "text",
-                                        "analyzer", "cjk",          // 수정: gse -> cjk
-                                        "search_analyzer", "cjk"   // 수정: gse -> cjk
+                                        "analyzer", "cjk",
+                                        "search_analyzer", "cjk"
                                 ),
                                 "brandName", Map.of(
                                         "type", "text",
-                                        "analyzer", "cjk",          // 수정: gse -> cjk
+                                        "analyzer", "cjk",
                                         "search_analyzer", "cjk"
                                 ),
                                 "categoryName", Map.of(
                                         "type", "text",
-                                        "analyzer", "cjk",          // 수정: gse -> cjk
+                                        "analyzer", "cjk",
                                         "search_analyzer", "cjk"
                                 ),
                                 "price", Map.of("type", "long"),
