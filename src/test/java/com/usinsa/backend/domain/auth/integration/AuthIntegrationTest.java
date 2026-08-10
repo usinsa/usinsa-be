@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.usinsa.backend.domain.auth.dto.AuthDto;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
+import com.usinsa.backend.domain.search.port.ProductIndexPort;
+import com.usinsa.backend.domain.search.port.ProductSearchPort;
+import com.usinsa.backend.domain.search.port.ProductVectorSearchPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +51,15 @@ class AuthIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @MockBean
+    private ProductIndexPort productIndexPort;
+
+    @MockBean
+    private ProductSearchPort productSearchPort;
+
+    @MockBean
+    private ProductVectorSearchPort productVectorSearchPort;
+
     private Member testMember;
     private String testPassword = "password123!";
 
@@ -90,25 +102,23 @@ class AuthIntegrationTest {
         String loginResponseJson = loginResult.getResponse().getContentAsString();
         String accessToken = objectMapper.readTree(loginResponseJson)
                 .path("data").path("accessToken").asText();
-        String refreshToken = objectMapper.readTree(loginResponseJson)
-                .path("data").path("refreshToken").asText();
 
         assertThat(accessToken).isNotBlank();
-        assertThat(refreshToken).isNotBlank();
+
+        // 로그인 시 내려온 쿠키 (accessToken/refreshToken/deviceId) 확보
+        jakarta.servlet.http.Cookie[] loginCookies = loginResult.getResponse().getCookies();
+        assertThat(loginCookies).isNotEmpty();
 
         // 2. 인증이 필요한 요청 (Access Token 사용)
-        mockMvc.perform(get("/api/v1/members/me")
+        mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer " + accessToken))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value(testMember.getEmail()));
 
-        // 3. 토큰 갱신
-        AuthDto.RefreshReq refreshReq = new AuthDto.RefreshReq();
-        refreshReq.setRefreshToken(refreshToken);
-
+        // 3. 토큰 갱신 (Refresh Token 쿠키 사용)
         MvcResult refreshResult = mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(refreshReq)))
+                        .cookie(loginCookies))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -124,7 +134,7 @@ class AuthIntegrationTest {
         assertThat(newAccessToken).isNotEqualTo(accessToken);  // 새 토큰 발급 확인
 
         // 4. 새 Access Token으로 인증 요청
-        mockMvc.perform(get("/api/v1/members/me")
+        mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer " + newAccessToken))
                 .andDo(print())
                 .andExpect(status().isOk());
@@ -137,7 +147,7 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.success").value(true));
 
         // 6. 로그아웃 후 토큰 사용 시도 (실패해야 함)
-        mockMvc.perform(get("/api/v1/members/me")
+        mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer " + newAccessToken))
                 .andDo(print())
                 .andExpect(status().isUnauthorized());
@@ -170,26 +180,41 @@ class AuthIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))
                 .andDo(print())
-                .andExpect(status().isNotFound())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error").exists());
     }
 
     @Test
-    @DisplayName("인증 실패 - Authorization 헤더 없음")
+    @DisplayName("인증 없이 /me 호출 - Access Token 없어 401 대신 잘못된 요청으로 처리된다")
     void auth_Fail_NoAuthHeader() throws Exception {
-        mockMvc.perform(get("/api/v1/members/me"))
+        // /api/v1/auth/me 는 SecurityConfig 상 permitAll 이므로
+        // 인증 정보가 없으면 필터가 principal 을 세팅하지 않아 memberId=null 로 서비스에 전달되고
+        // Repository 단에서 IllegalArgumentException → 400(BAD_REQUEST) 로 응답한다.
+        mockMvc.perform(get("/api/v1/auth/me"))
                 .andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    @DisplayName("인증 실패 - 잘못된 토큰")
+    @DisplayName("인증 실패 - 잘못된 토큰으로 /me 호출 시에도 인증 정보가 세팅되지 않는다")
     void auth_Fail_InvalidToken() throws Exception {
-        mockMvc.perform(get("/api/v1/members/me")
+        mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer invalid.token.here"))
                 .andDo(print())
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @DisplayName("토큰 갱신 실패 - Refresh Token 쿠키 없음")
+    void refresh_Fail_NoCookie() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/refresh"))
+                .andDo(print())
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("JWT_007"));
     }
 
     @Test
@@ -206,27 +231,20 @@ class AuthIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        String loginResponseJson = loginResult.getResponse().getContentAsString();
-        String refreshToken = objectMapper.readTree(loginResponseJson)
-                .path("data").path("refreshToken").asText();
+        jakarta.servlet.http.Cookie[] loginCookies = loginResult.getResponse().getCookies();
 
         // 2. 첫 번째 갱신 (정상)
-        AuthDto.RefreshReq refreshReq = new AuthDto.RefreshReq();
-        refreshReq.setRefreshToken(refreshToken);
-
         mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(refreshReq)))
+                        .cookie(loginCookies))
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        // 3. 같은 Refresh Token으로 재시도 (공격 시나리오)
+        // 3. 같은(로그인 시 발급된) Refresh Token 쿠키로 재시도 (공격 시나리오)
         mockMvc.perform(post("/api/v1/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(refreshReq)))
+                        .cookie(loginCookies))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("TOKEN_REUSED"));
+                .andExpect(jsonPath("$.error.code").value("JWT_004"));
     }
 }

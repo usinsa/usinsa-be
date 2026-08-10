@@ -3,13 +3,15 @@ package com.usinsa.backend.domain.cart.service;
 import com.usinsa.backend.domain.cart.dto.CartDto;
 import com.usinsa.backend.domain.cart.entity.Cart;
 import com.usinsa.backend.domain.cart.repository.CartRepository;
+import com.usinsa.backend.domain.cart.repository.GuestCartRedisRepository;
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.member.entity.Member;
 import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -44,6 +47,9 @@ class CartServiceSessionTest {
 
     @Mock
     private ProductOptionRepository productOptionRepository;
+
+    @Mock
+    private GuestCartRedisRepository guestCartRedis;
 
     private Member testMember;
     private Product testProduct;
@@ -125,6 +131,7 @@ class CartServiceSessionTest {
             assertThat(result.isGuest()).isTrue();
             assertThat(result.getProductInfo()).isNotNull();
             assertThat(result.getProductInfo().getProductName()).isEqualTo("오버핏 티셔츠");
+            verify(guestCartRedis).addCartId(testSessionId, 1L);
         }
 
         @Test
@@ -155,6 +162,7 @@ class CartServiceSessionTest {
             assertThat(result.getCount()).isEqualTo(5); // 2 + 3
             assertThat(existingCart.getCount()).isEqualTo(5);
             verify(cartRepository, never()).save(any());
+            verify(guestCartRedis).refreshTtl(testSessionId);
         }
 
         @Test
@@ -168,21 +176,21 @@ class CartServiceSessionTest {
 
             // when & then
             assertThatThrownBy(() -> cartService.createGuestCart(request, null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("세션 ID가 필요합니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
 
             assertThatThrownBy(() -> cartService.createGuestCart(request, ""))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("세션 ID가 필요합니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
         }
     }
 
     @Nested
-    @DisplayName("세션 장바구니 조회")
-    class FindBySessionId {
+    @DisplayName("Redis 기반 비회원 장바구니 조회")
+    class FindByGuestId {
 
         @Test
-        @DisplayName("세션 ID로 장바구니 조회 (상품 정보 포함)")
+        @DisplayName("guestId로 장바구니 조회 (상품 정보 포함)")
         void findSuccess() {
             // given
             Cart cart1 = Cart.builder()
@@ -199,11 +207,12 @@ class CartServiceSessionTest {
                     .count(3)
                     .build();
 
-            given(cartRepository.findBySessionIdWithProduct(testSessionId))
+            given(guestCartRedis.getCartIds(testSessionId)).willReturn(Set.of("1", "2"));
+            given(cartRepository.findByIdsWithProduct(anyList()))
                     .willReturn(Arrays.asList(cart1, cart2));
 
             // when
-            List<CartDto.Response> results = cartService.findBySessionId(testSessionId);
+            List<CartDto.Response> results = cartService.findByGuestId(testSessionId);
 
             // then
             assertThat(results).hasSize(2);
@@ -216,9 +225,9 @@ class CartServiceSessionTest {
         @DisplayName("세션 ID가 없으면 예외 발생")
         void failWithoutSessionId() {
             // when & then
-            assertThatThrownBy(() -> cartService.findBySessionId(null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("세션 ID가 필요합니다.");
+            assertThatThrownBy(() -> cartService.findByGuestId(null))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
         }
     }
 
@@ -286,6 +295,7 @@ class CartServiceSessionTest {
             // then
             assertThat(memberCart.getCount()).isEqualTo(5); // 2 + 3
             verify(cartRepository).delete(guestCart);
+            verify(guestCartRedis).deleteAll(testSessionId);
         }
 
         @Test
@@ -367,8 +377,8 @@ class CartServiceSessionTest {
 
             // when & then
             assertThatThrownBy(() -> cartService.mergeGuestCartToMember(testSessionId, 999L))
-                    .isInstanceOf(EntityNotFoundException.class)
-                    .hasMessage("회원이 존재하지 않습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.MEMBER_NOT_FOUND.getMessage());
         }
     }
 
@@ -387,6 +397,7 @@ class CartServiceSessionTest {
 
             // then
             verify(cartRepository).deleteBySessionId(testSessionId);
+            verify(guestCartRedis).deleteAll(testSessionId);
         }
 
         @Test
@@ -394,8 +405,8 @@ class CartServiceSessionTest {
         void failWithoutSessionId() {
             // when & then
             assertThatThrownBy(() -> cartService.deleteGuestCart(null))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("세션 ID가 필요합니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
         }
     }
 }

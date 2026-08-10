@@ -6,6 +6,8 @@ import com.usinsa.backend.domain.order.dto.OrderDto;
 import com.usinsa.backend.domain.order.entity.Order;
 import com.usinsa.backend.domain.order.entity.OrderStatus;
 import com.usinsa.backend.domain.order.repository.OrderRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -95,8 +97,8 @@ class OrderServiceTest {
 
             // when & then
             assertThatThrownBy(() -> orderService.create(createReq))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Member not found");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.MEMBER_NOT_FOUND.getMessage());
         }
     }
 
@@ -129,8 +131,8 @@ class OrderServiceTest {
 
             // when & then
             assertThatThrownBy(() -> orderService.findById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("주문 정보를 찾을 수 없습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
         }
 
         @Test
@@ -190,8 +192,8 @@ class OrderServiceTest {
 
             // when & then
             assertThatThrownBy(() -> orderService.update(999L, updateReq))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Order not found");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
         }
     }
 
@@ -223,8 +225,134 @@ class OrderServiceTest {
 
             // when & then
             assertThatThrownBy(() -> orderService.cancel(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("Order not found");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
+        }
+
+        @Test
+        @DisplayName("이미 취소된 주문을 다시 취소하면 예외가 발생한다")
+        void cancel_AlreadyCancelled_Fail() {
+            // given
+            Order cancelledOrder = Order.builder()
+                    .id(1L)
+                    .member(testMember)
+                    .receiverAddress("서울시 강남구")
+                    .receiverName("홍길동")
+                    .receiverPhone("010-1234-5678")
+                    .status(OrderStatus.CANCELLED)
+                    .build();
+
+            given(orderRepository.findWithMemberAndDeliveryById(anyLong()))
+                    .willReturn(Optional.of(cancelledOrder));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.cancel(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_ALREADY_CANCELLED.getMessage());
+        }
+
+        @Test
+        @DisplayName("결제가 완료된 주문은 취소할 수 없다")
+        void cancel_CannotCancel_Fail() {
+            // given
+            Order completedOrder = Order.builder()
+                    .id(1L)
+                    .member(testMember)
+                    .receiverAddress("서울시 강남구")
+                    .receiverName("홍길동")
+                    .receiverPhone("010-1234-5678")
+                    .status(OrderStatus.PAYMENT_COMPLETED)
+                    .build();
+
+            given(orderRepository.findWithMemberAndDeliveryById(anyLong()))
+                    .willReturn(Optional.of(completedOrder));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.cancel(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_CANNOT_CANCEL.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("주문 상태 전이 테스트")
+    class StatusTransitionTest {
+
+        @Test
+        @DisplayName("결제 준비 상태로 정상 전이한다")
+        void updateToPaymentReady_Success() {
+            // given
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(testOrder));
+
+            // when
+            orderService.updateToPaymentReady(1L);
+
+            // then
+            assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.PAYMENT_READY);
+        }
+
+        @Test
+        @DisplayName("CREATED 상태가 아니면 결제 준비로 전이할 수 없다")
+        void updateToPaymentReady_InvalidState_Fail() {
+            // given
+            testOrder.setStatus(OrderStatus.PAYMENT_READY);
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(testOrder));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.updateToPaymentReady(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.INVALID_INPUT_VALUE.getMessage());
+        }
+
+        @Test
+        @DisplayName("결제 완료 상태로 정상 전이한다")
+        void updateToPaymentCompleted_Success() {
+            // given
+            testOrder.setStatus(OrderStatus.PAYMENT_READY);
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(testOrder));
+
+            // when
+            orderService.updateToPaymentCompleted(1L);
+
+            // then
+            assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.PAYMENT_COMPLETED);
+        }
+
+        @Test
+        @DisplayName("PAYMENT_READY 상태가 아니면 결제 완료로 전이할 수 없다")
+        void updateToPaymentCompleted_InvalidState_Fail() {
+            // given
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(testOrder));
+
+            // when & then
+            assertThatThrownBy(() -> orderService.updateToPaymentCompleted(1L))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.INVALID_INPUT_VALUE.getMessage());
+        }
+
+        @Test
+        @DisplayName("결제 취소로 주문 상태를 취소로 변경한다")
+        void updateToCancelled_Success() {
+            // given
+            given(orderRepository.findById(anyLong())).willReturn(Optional.of(testOrder));
+
+            // when
+            orderService.updateToCancelled(1L);
+
+            // then
+            assertThat(testOrder.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        }
+
+        @Test
+        @DisplayName("존재하지 않는 주문의 상태 변경 시 예외가 발생한다")
+        void updateToPaymentReady_NotFound_Fail() {
+            // given
+            given(orderRepository.findById(anyLong())).willReturn(Optional.empty());
+
+            // when & then
+            assertThatThrownBy(() -> orderService.updateToPaymentReady(999L))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.ORDER_NOT_FOUND.getMessage());
         }
     }
 }
