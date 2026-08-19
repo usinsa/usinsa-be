@@ -3,23 +3,28 @@ package com.usinsa.backend.domain.search.rag.client;
 import com.usinsa.backend.domain.search.embedding.config.GeminiProperties;
 import com.usinsa.backend.domain.search.hybrid.dto.RankedProductDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.util.retry.Retry;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Gemini 2.5 Flash generateContent API 호출 구현체.
+ * Gemini generateContent API 호출 구현체.
  * 상품 검색은 하지 않는다 - HybridSearchService가 이미 뽑아준 후보만 근거로
  * 추천 문장을 생성한다 (hallucination 방지 원칙).
  * 프롬프트에는 이름/브랜드/가격/카테고리만 넣는다 (RRF 점수 등 내부 값은 제외).
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class GeminiGenerationClient implements GeminiClient {
 
-    private static final String MODEL = "gemini-2.5-flash";
+    private static final String MODEL = "gemini-flash-latest";
 
     private final WebClient geminiWebClient;
     private final GeminiProperties geminiProperties;
@@ -33,15 +38,24 @@ public class GeminiGenerationClient implements GeminiClient {
                 "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt))))
         );
 
-        Map<String, Object> response = geminiWebClient.post()
-                .uri("/v1beta/models/{model}:generateContent", MODEL)
-                .header("x-goog-api-key", geminiProperties.getApiKey())
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+        try {
+            Map<String, Object> response = geminiWebClient.post()
+                    .uri("/v1beta/models/{model}:generateContent", MODEL)
+                    .header("x-goog-api-key", geminiProperties.getApiKey())
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    //.retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
+                    //        .filter(this::isRetryable))
+                    .block();
 
-        return extractText(response);
+            return extractText(response);
+        } catch (Exception e) {
+            // Gemini가 끝내 응답하지 못해도 검색 자체(키워드+벡터)는 이미 성공했으므로
+            // 전체 요청을 실패시키지 않고, 상품 목록은 그대로 보여주고 추천 문구만 안내 문구로 대체한다.
+            log.warn("Gemini 추천 문구 생성 실패, 상품 목록만 반환합니다: {}", e.getMessage());
+            return "지금은 AI 추천 문구를 생성하지 못했어요. 아래 상품 목록을 확인해주세요.";
+        }
     }
 
     /**

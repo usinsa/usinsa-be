@@ -92,7 +92,7 @@ ProductSavedEvent / ProductUpdatedEvent (기존 이벤트 재사용)
   `hibernate-vector` 모듈 버전을 정확히 맞춰야 했다. Spring Boot 업그레이드 없이 기존 버전
   기반으로 문제를 해결하는 쪽을 택했다.
 
-## 6. 개발 과정에 대한 메모 — AI 에이전트 협업
+## 6. 개발 과정에 대한 메모 — AI 에이전트 활용
 
 이번 기능은 JetBrains IDE에 연결된 AI 코딩 에이전트(Claude, MCP 연동)와 함께
 **단계별 승인 방식**으로 진행했다. 전체 설계를 한 번에 맡기지 않고, 매 단계마다
