@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
-import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.util.List;
@@ -45,14 +43,11 @@ public class GeminiGenerationClient implements GeminiClient {
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(Map.class)
-                    //.retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
-                    //        .filter(this::isRetryable))
+                    .timeout(Duration.ofSeconds(5))
                     .block();
 
             return extractText(response);
         } catch (Exception e) {
-            // Gemini가 끝내 응답하지 못해도 검색 자체(키워드+벡터)는 이미 성공했으므로
-            // 전체 요청을 실패시키지 않고, 상품 목록은 그대로 보여주고 추천 문구만 안내 문구로 대체한다.
             log.warn("Gemini 추천 문구 생성 실패, 상품 목록만 반환합니다: {}", e.getMessage());
             return "지금은 AI 추천 문구를 생성하지 못했어요. 아래 상품 목록을 확인해주세요.";
         }
