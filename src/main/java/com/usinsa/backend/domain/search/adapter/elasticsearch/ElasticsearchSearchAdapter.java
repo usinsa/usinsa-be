@@ -20,7 +20,7 @@ public class ElasticsearchSearchAdapter implements ProductSearchPort {
     @Override
     public List<ProductSearchDto> search(String keyword) {
         return productSearchRepository
-                .findByNameContainingIgnoreCase(keyword)
+                .searchByKeyword(keyword)
                 .stream()
                 .map(this::toDto)
                 .toList();

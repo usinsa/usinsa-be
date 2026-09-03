@@ -31,7 +31,7 @@ public class ZincSearchDiagnosticController {
         this.restTemplate = restTemplate;
     }
 
-    // Step 1: 인덱스 존재 + 매핑 확인 (gse 분석기가 프로퍼티에 잘 들어갔는지 JSON 눈으로 확인 가능)
+    // Step 1: 인덱스 존재 + 매핑 확인
     @GetMapping("/step1-index")
     public ResponseEntity<String> step1Index() {
         return rawGet("/api/index/" + props.getIndex());
@@ -44,14 +44,14 @@ public class ZincSearchDiagnosticController {
                 "{\"query\":{\"match_all\":{}},\"size\":3}");
     }
 
-    // Step 4: 단일 필드 match 쿼리 테스트 (gse 분석기로 쪼개진 단어가 정상 매칭되는지 확인)
+    // Step 4: 단일 필드 match 쿼리 테스트
     @GetMapping("/step4-match")
     public ResponseEntity<String> step4Match(@RequestParam(defaultValue = "나이키") String q) {
         return rawPost("/api/" + props.getIndex() + "/_search",
                 "{\"query\":{\"match\":{\"name\":\"" + q + "\"}},\"size\":5}");
     }
 
-    // Step 5: 다중 필드 multi_match 테스트 (실제 서비스에서 유용하게 쓸 수 있는 고도화 쿼리)
+    // Step 5: 다중 필드 multi_match 테스트
     @GetMapping("/step5-multimatch")
     public ResponseEntity<String> step5MultiMatch(@RequestParam(defaultValue = "나이키") String q) {
         return rawPost("/api/" + props.getIndex() + "/_search",
@@ -68,7 +68,7 @@ public class ZincSearchDiagnosticController {
                 hitCount(rawPost("/api/" + props.getIndex() + "/_search",
                         "{\"query\":{\"match\":{\"name\":\"" + q + "\"}},\"size\":5}")));
 
-        // 2. 통합 다중 필드 match (추천 방식)
+        // 2. 통합 다중 필드 match
         result.put("2_multi_match_fields",
                 hitCount(rawPost("/api/" + props.getIndex() + "/_search",
                         "{\"query\":{\"multi_match\":{\"query\":\"" + q + "\",\"fields\":[\"name\",\"brandName\",\"categoryName\"]}},\"size\":5}")));

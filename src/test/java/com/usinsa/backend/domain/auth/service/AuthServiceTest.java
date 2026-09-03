@@ -1,6 +1,7 @@
 package com.usinsa.backend.domain.auth.service;
 
 import com.usinsa.backend.domain.auth.dto.AuthDto;
+import com.usinsa.backend.domain.auth.token.JwtProperties;
 import com.usinsa.backend.domain.auth.token.JwtTokenService;
 import com.usinsa.backend.domain.auth.token.TokenPair;
 import com.usinsa.backend.domain.member.entity.Member;
@@ -8,6 +9,7 @@ import com.usinsa.backend.domain.member.repository.MemberRepository;
 import com.usinsa.backend.global.exception.CustomException;
 import com.usinsa.backend.global.exception.ErrorCode;
 import com.usinsa.backend.global.util.CookieUtil;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +22,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -46,6 +47,9 @@ class AuthServiceTest {
     private JwtTokenService tokenService;
 
     @Mock
+    private JwtProperties jwtProperties;
+
+    @Mock
     private HttpServletRequest request;
 
     @Mock
@@ -62,7 +66,7 @@ class AuthServiceTest {
         // 테스트용 회원 데이터
         testMember = Member.builder()
                 .id(1L)
-                .usinaId("testuser")
+                .usinaId("test@example.com")
                 .email("test@example.com")
                 .password("$2a$10$encodedPassword") // BCrypt 인코딩된 비밀번호
                 .name("테스트유저")
@@ -138,7 +142,7 @@ class AuthServiceTest {
         // when & then
         assertThatThrownBy(() -> authService.login(loginReq, request, response))
                 .isInstanceOf(CustomException.class)
-                .hasMessageContaining(ErrorCode.MEMBER_NOT_FOUND.getMessage());
+                .hasMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
 
         verify(memberRepository).findByEmail("notfound@example.com");
         verify(passwordEncoder, never()).matches(anyString(), anyString());
@@ -161,7 +165,7 @@ class AuthServiceTest {
         // when & then
         assertThatThrownBy(() -> authService.login(loginReq, request, response))
                 .isInstanceOf(CustomException.class)
-                .hasMessageContaining("이메일 또는 비밀번호가 일치하지 않습니다");
+                .hasMessage(ErrorCode.INVALID_CREDENTIALS.getMessage());
 
         verify(memberRepository).findByEmail("test@example.com");
         verify(passwordEncoder).matches("wrongpassword", testMember.getPassword());
@@ -172,8 +176,7 @@ class AuthServiceTest {
     @DisplayName("토큰 갱신 성공")
     void refresh_Success() {
         // given
-        AuthDto.RefreshReq refreshReq = new AuthDto.RefreshReq();
-        refreshReq.setRefreshToken("old.refresh.token");
+        Cookie refreshCookie = new Cookie(CookieUtil.REFRESH_TOKEN, "old.refresh.token");
 
         given(tokenService.rotateTokens(anyString(), anyString()))
                 .willReturn(testTokenPair);
@@ -181,10 +184,12 @@ class AuthServiceTest {
         // when
         TokenPair result;
         try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.getCookie(any(), eq(CookieUtil.REFRESH_TOKEN)))
+                    .thenReturn(Optional.of(refreshCookie));
             cookieUtilMock.when(() -> CookieUtil.resolveDeviceId(any()))
                     .thenReturn("device-123");
-            
-            result = authService.refresh(refreshReq, request);
+
+            result = authService.refresh(request, response);
         }
 
         // then
@@ -193,6 +198,22 @@ class AuthServiceTest {
         assertThat(result.getRefreshToken()).isEqualTo("test.refresh.token");
 
         verify(tokenService).rotateTokens("old.refresh.token", "device-123");
+    }
+
+    @Test
+    @DisplayName("토큰 갱신 실패 - Refresh Token 쿠키 없음")
+    void refresh_Fail_TokenNotFound() {
+        // when & then
+        try (MockedStatic<CookieUtil> cookieUtilMock = mockStatic(CookieUtil.class)) {
+            cookieUtilMock.when(() -> CookieUtil.getCookie(any(), eq(CookieUtil.REFRESH_TOKEN)))
+                    .thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> authService.refresh(request, response))
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.TOKEN_NOT_FOUND.getMessage());
+        }
+
+        verify(tokenService, never()).rotateTokens(anyString(), anyString());
     }
 
     @Test
@@ -226,5 +247,95 @@ class AuthServiceTest {
 
         // then
         verify(tokenService, never()).logout(anyString());
+    }
+
+    @Test
+    @DisplayName("회원가입 성공")
+    void signup_Success() {
+        // given
+        AuthDto.SignupReq req = new AuthDto.SignupReq();
+        req.setEmail("new@example.com");
+        req.setPassword("password123");
+        req.setPasswordConfirm("password123");
+        req.setName("신규유저");
+        req.setNickname("뉴비");
+
+        given(memberRepository.existsByEmail(anyString())).willReturn(false);
+        given(passwordEncoder.encode(anyString())).willReturn("encodedPassword");
+
+        // when
+        authService.signup(req);
+
+        // then
+        verify(memberRepository).save(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 실패 - 비밀번호 불일치")
+    void signup_Fail_PasswordMismatch() {
+        // given
+        AuthDto.SignupReq req = new AuthDto.SignupReq();
+        req.setEmail("new@example.com");
+        req.setPassword("password123");
+        req.setPasswordConfirm("different123");
+        req.setName("신규유저");
+        req.setNickname("뉴비");
+
+        // when & then
+        assertThatThrownBy(() -> authService.signup(req))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.PASSWORD_MISMATCH.getMessage());
+
+        verify(memberRepository, never()).save(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("회원가입 실패 - 이메일 중복")
+    void signup_Fail_EmailAlreadyExists() {
+        // given
+        AuthDto.SignupReq req = new AuthDto.SignupReq();
+        req.setEmail("test@example.com");
+        req.setPassword("password123");
+        req.setPasswordConfirm("password123");
+        req.setName("신규유저");
+        req.setNickname("뉴비");
+
+        given(memberRepository.existsByEmail(anyString())).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> authService.signup(req))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.EMAIL_ALREADY_EXISTS.getMessage());
+
+        verify(memberRepository, never()).save(any(Member.class));
+    }
+
+    @Test
+    @DisplayName("내 정보 조회 성공")
+    void me_Success() {
+        // given
+        given(memberRepository.findById(anyLong())).willReturn(Optional.of(testMember));
+
+        // when
+        AuthDto.MeRes result = authService.me(1L);
+
+        // then
+        assertThat(result).isNotNull();
+        assertThat(result.getMemberId()).isEqualTo(1L);
+        assertThat(result.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.getName()).isEqualTo("테스트유저");
+        assertThat(result.getNickname()).isEqualTo("테스터");
+    }
+
+    @Test
+    @DisplayName("내 정보 조회 실패 - 존재하지 않는 회원")
+    void me_Fail_MemberNotFound() {
+        // given
+        given(memberRepository.findById(anyLong())).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> authService.me(999L))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.MEMBER_NOT_FOUND.getMessage());
     }
 }

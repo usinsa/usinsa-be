@@ -12,6 +12,8 @@ import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
+import com.usinsa.backend.global.util.CookieUtil;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -20,9 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -58,12 +61,14 @@ class CartControllerIntegrationTest {
     private Member testMember;
     private Product testProduct;
     private ProductOption testProductOption;
-    private MockHttpSession session;
+    private Cookie guestIdCookie;
+    private String guestId;
 
     @BeforeEach
     void setUp() {
         cartRepository.deleteAll();
-        session = new MockHttpSession();
+        guestId = UUID.randomUUID().toString();
+        guestIdCookie = new Cookie(CookieUtil.GUEST_ID, guestId);
 
         // 회원 생성
         testMember = Member.builder()
@@ -115,7 +120,7 @@ class CartControllerIntegrationTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/carts/guest")
-                            .session(session)
+                            .cookie(guestIdCookie)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -136,7 +141,7 @@ class CartControllerIntegrationTest {
         void getGuestCart() throws Exception {
             // given
             Cart guestCart = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(testProductOption)
                     .count(2)
                     .build();
@@ -144,7 +149,7 @@ class CartControllerIntegrationTest {
 
             // when & then
             mockMvc.perform(get("/api/v1/carts/guest")
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].productInfo").exists())
                     .andExpect(jsonPath("$[0].productInfo.productName").value("오버핏 티셔츠"))
@@ -161,7 +166,7 @@ class CartControllerIntegrationTest {
                     .build();
 
             mockMvc.perform(post("/api/v1/carts/guest")
-                    .session(session)
+                    .cookie(guestIdCookie)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(firstRequest)));
 
@@ -173,7 +178,7 @@ class CartControllerIntegrationTest {
 
             // then
             mockMvc.perform(post("/api/v1/carts/guest")
-                            .session(session)
+                            .cookie(guestIdCookie)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(secondRequest)))
                     .andExpect(status().isOk())
@@ -185,7 +190,7 @@ class CartControllerIntegrationTest {
         void deleteGuestCart() throws Exception {
             // given
             Cart guestCart = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(testProductOption)
                     .count(2)
                     .build();
@@ -193,10 +198,10 @@ class CartControllerIntegrationTest {
 
             // when & then
             mockMvc.perform(delete("/api/v1/carts/guest")
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isNoContent());
 
-            assertThat(cartRepository.findBySessionId(session.getId())).isEmpty();
+            assertThat(cartRepository.findBySessionId(guestId)).isEmpty();
         }
     }
 
@@ -295,7 +300,7 @@ class CartControllerIntegrationTest {
         void mergeGuestCart() throws Exception {
             // given
             Cart guestCart = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(testProductOption)
                     .count(3)
                     .build();
@@ -303,7 +308,7 @@ class CartControllerIntegrationTest {
 
             // when
             mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].memberId").value(testMember.getId()))
                     .andExpect(jsonPath("$[0].count").value(3))
@@ -312,7 +317,7 @@ class CartControllerIntegrationTest {
 
             // then - 비회원 장바구니가 비어있는지 확인
             mockMvc.perform(get("/api/v1/carts/guest")
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isEmpty());
         }
@@ -330,7 +335,7 @@ class CartControllerIntegrationTest {
 
             // given - 비회원 장바구니에 동일 상품 추가 (수량 3)
             Cart guestCart = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(testProductOption)
                     .count(3)
                     .build();
@@ -338,7 +343,7 @@ class CartControllerIntegrationTest {
 
             // when
             mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].count").value(5)) // 2 + 3
                     .andExpect(jsonPath("$[0].productInfo").exists());
@@ -362,7 +367,7 @@ class CartControllerIntegrationTest {
 
             // when & then
             mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].memberId").value(testMember.getId()));
@@ -389,14 +394,14 @@ class CartControllerIntegrationTest {
 
             // given - 비회원 장바구니에 상품1(수량 증가)과 상품2(신규)
             Cart guestCart1 = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(testProductOption)
                     .count(1)
                     .build();
             cartRepository.save(guestCart1);
 
             Cart guestCart2 = Cart.builder()
-                    .sessionId(session.getId())
+                    .sessionId(guestId)
                     .productOption(option2)
                     .count(3)
                     .build();
@@ -404,7 +409,7 @@ class CartControllerIntegrationTest {
 
             // when
             mockMvc.perform(post("/api/v1/carts/merge/" + testMember.getId())
-                            .session(session))
+                            .cookie(guestIdCookie))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(2));
 

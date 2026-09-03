@@ -1,7 +1,6 @@
 package com.usinsa.backend.domain.cart.service;
 
 import com.usinsa.backend.domain.cart.dto.CartDto;
-import com.usinsa.backend.domain.cart.repository.CartRepository;
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.category.repository.CategoryRepository;
 import com.usinsa.backend.domain.member.entity.Member;
@@ -10,11 +9,17 @@ import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
+import com.usinsa.backend.domain.search.port.ProductIndexPort;
+import com.usinsa.backend.domain.search.port.ProductSearchPort;
+import com.usinsa.backend.domain.search.port.ProductVectorSearchPort;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +27,16 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * 비회원 장바구니 정리(cleanup) 통합 테스트
+ *
+ * 과거에는 HttpSession 만료 리스너가 CartService.deleteGuestCartBySessionId(sessionId)를 호출해
+ * 세션 종료 시 DB 행을 즉시 정리했지만, 현재는 guestId(Redis) 기반 TTL(7일) 방식으로 대체되어
+ * 해당 메서드는 더 이상 존재하지 않는다. 지금은 CartService.deleteGuestCart(guestId)가
+ * DB 행과 Redis 키를 함께 제거하는 역할을 하므로, 이를 기준으로 검증한다.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
@@ -42,6 +56,15 @@ class CartSessionCleanupTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @MockBean
+    private ProductIndexPort productIndexPort;
+
+    @MockBean
+    private ProductSearchPort productSearchPort;
+
+    @MockBean
+    private ProductVectorSearchPort productVectorSearchPort;
 
     private ProductOption testProductOption;
     private Member testMember;
@@ -81,28 +104,26 @@ class CartSessionCleanupTest {
     }
 
     @Test
-    @DisplayName("세션 만료 시 비회원 장바구니 자동 삭제 시뮬레이션")
-    void testSessionCleanup() {
+    @DisplayName("guestId 기반 비회원 장바구니 정리")
+    void testGuestCartCleanup() {
         // Given: 비회원이 장바구니에 상품 추가
-        String sessionId = UUID.randomUUID().toString();
+        String guestId = UUID.randomUUID().toString();
         CartDto.GuestCreateReq request = CartDto.GuestCreateReq.builder()
                 .productOptionId(testProductOption.getId())
                 .count(2)
                 .build();
 
-        cartService.createGuestCart(request, sessionId);
+        cartService.createGuestCart(request, guestId);
 
         // 장바구니가 생성되었는지 확인
-        List<CartDto.Response> guestCarts = cartService.findBySessionId(sessionId);
+        List<CartDto.Response> guestCarts = cartService.findByGuestId(guestId);
         assertThat(guestCarts).hasSize(1);
 
-        // When: 세션 만료로 인한 장바구니 삭제 (세션 리스너 동작 시뮬레이션)
-        int deletedCount = cartService.deleteGuestCartBySessionId(sessionId);
+        // When: 비회원 장바구니 정리
+        cartService.deleteGuestCart(guestId);
 
         // Then: 비회원 장바구니가 삭제되어야 함
-        assertThat(deletedCount).isEqualTo(1);
-
-        List<CartDto.Response> cartsAfterCleanup = cartService.findBySessionId(sessionId);
+        List<CartDto.Response> cartsAfterCleanup = cartService.findByGuestId(guestId);
         assertThat(cartsAfterCleanup).isEmpty();
     }
 
@@ -110,7 +131,7 @@ class CartSessionCleanupTest {
     @DisplayName("여러 비회원 장바구니 항목 동시 삭제")
     void testMultipleGuestCartCleanup() {
         // Given: 비회원이 여러 상품을 장바구니에 추가
-        String sessionId = UUID.randomUUID().toString();
+        String guestId = UUID.randomUUID().toString();
 
         // 상품 옵션 3개 추가 생성
         ProductOption option2 = ProductOption.builder()
@@ -130,90 +151,82 @@ class CartSessionCleanupTest {
         // 세 개의 상품을 장바구니에 추가
         cartService.createGuestCart(
                 CartDto.GuestCreateReq.builder().productOptionId(testProductOption.getId()).count(1).build(),
-                sessionId
+                guestId
         );
         cartService.createGuestCart(
                 CartDto.GuestCreateReq.builder().productOptionId(option2.getId()).count(2).build(),
-                sessionId
+                guestId
         );
         cartService.createGuestCart(
                 CartDto.GuestCreateReq.builder().productOptionId(option3.getId()).count(3).build(),
-                sessionId
+                guestId
         );
 
-        assertThat(cartService.findBySessionId(sessionId)).hasSize(3);
+        assertThat(cartService.findByGuestId(guestId)).hasSize(3);
 
-        // When: 세션 만료
-        int deletedCount = cartService.deleteGuestCartBySessionId(sessionId);
+        // When: 정리
+        cartService.deleteGuestCart(guestId);
 
         // Then: 모든 비회원 장바구니 항목이 삭제되어야 함
-        assertThat(deletedCount).isEqualTo(3);
-        assertThat(cartService.findBySessionId(sessionId)).isEmpty();
+        assertThat(cartService.findByGuestId(guestId)).isEmpty();
     }
 
     @Test
-    @DisplayName("로그인 후 병합된 장바구니는 세션 만료 시 삭제되지 않음")
-    void testMergedCartNotDeletedOnSessionExpiry() {
+    @DisplayName("로그인 후 병합된 장바구니는 재정리해도 영향받지 않음")
+    void testMergedCartNotAffectedByCleanup() {
         // Given: 비회원이 장바구니에 상품 추가
-        String sessionId = UUID.randomUUID().toString();
+        String guestId = UUID.randomUUID().toString();
         cartService.createGuestCart(
                 CartDto.GuestCreateReq.builder().productOptionId(testProductOption.getId()).count(2).build(),
-                sessionId
+                guestId
         );
 
         // 비회원이 로그인하여 장바구니 병합
-        cartService.mergeGuestCartToMember(sessionId, testMember.getId());
+        cartService.mergeGuestCartToMember(guestId, testMember.getId());
 
         // 병합 후 비회원 장바구니는 이미 없어야 함
-        List<CartDto.Response> guestCartsAfterMerge = cartService.findBySessionId(sessionId);
+        List<CartDto.Response> guestCartsAfterMerge = cartService.findByGuestId(guestId);
         assertThat(guestCartsAfterMerge).isEmpty();
 
         // 회원 장바구니에는 존재해야 함
         List<CartDto.Response> memberCarts = cartService.findByMemberId(testMember.getId());
         assertThat(memberCarts).hasSize(1);
 
-        // When: 세션 만료 (더 이상 삭제할 비회원 장바구니 없음)
-        int deletedCount = cartService.deleteGuestCartBySessionId(sessionId);
+        // When: 이미 병합되어 비어있는 guestId를 다시 정리해도 예외가 발생하지 않아야 함
+        cartService.deleteGuestCart(guestId);
 
-        // Then: 삭제된 항목 없음 (이미 병합되어 비회원 장바구니가 없음)
-        assertThat(deletedCount).isEqualTo(0);
-
-        // 회원 장바구니는 그대로 유지
+        // Then: 회원 장바구니는 그대로 유지
         List<CartDto.Response> memberCartsAfterCleanup = cartService.findByMemberId(testMember.getId());
         assertThat(memberCartsAfterCleanup).hasSize(1);
     }
 
     @Test
-    @DisplayName("유효하지 않은 세션 ID로 삭제 시도")
-    void testCleanupWithInvalidSessionId() {
-        // Given: 유효하지 않은 세션 ID
-        String invalidSessionId = null;
+    @DisplayName("유효하지 않은 guestId로 정리 시도 시 예외 발생")
+    void testCleanupWithInvalidGuestId() {
+        // When & Then: null/빈 문자열은 예외를 발생시킨다
+        assertThatThrownBy(() -> cartService.deleteGuestCart(null))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
 
-        // When & Then: 예외 발생 없이 0 반환
-        int deletedCount = cartService.deleteGuestCartBySessionId(invalidSessionId);
-        assertThat(deletedCount).isEqualTo(0);
-
-        // 빈 문자열도 마찬가지
-        deletedCount = cartService.deleteGuestCartBySessionId("");
-        assertThat(deletedCount).isEqualTo(0);
+        assertThatThrownBy(() -> cartService.deleteGuestCart(""))
+                .isInstanceOf(CustomException.class)
+                .hasMessage(ErrorCode.SESSION_ID_REQUIRED.getMessage());
     }
 
     @Test
-    @DisplayName("존재하지 않는 세션 ID로 삭제 시도")
-    void testCleanupWithNonExistentSessionId() {
-        // Given: 존재하지 않는 세션 ID
-        String nonExistentSessionId = UUID.randomUUID().toString();
+    @DisplayName("존재하지 않는 guestId로 정리 시도해도 예외 없이 완료된다")
+    void testCleanupWithNonExistentGuestId() {
+        // Given: 존재하지 않는 guestId
+        String nonExistentGuestId = UUID.randomUUID().toString();
 
-        // When: 삭제 시도
-        int deletedCount = cartService.deleteGuestCartBySessionId(nonExistentSessionId);
-
-        // Then: 삭제된 항목 없음
-        assertThat(deletedCount).isEqualTo(0);
+        // When & Then: 삭제할 데이터가 없어도 예외 없이 완료된다
+        cartService.deleteGuestCart(nonExistentGuestId);
+        assertThat(cartService.findByGuestId(nonExistentGuestId)).isEmpty();
     }
 
     @Test
-    @DisplayName("회원 장바구니는 세션 만료의 영향을 받지 않음")
-    void testMemberCartNotAffectedBySessionCleanup() {
+    @DisplayName("회원 장바구니는 비회원 장바구니 정리의 영향을 받지 않음")
+    void testMemberCartNotAffectedByGuestCleanup() {
         // Given: 회원이 직접 장바구니에 상품 추가
         CartDto.CreateReq memberRequest = CartDto.CreateReq.builder()
                 .memberId(testMember.getId())
@@ -225,12 +238,11 @@ class CartSessionCleanupTest {
         List<CartDto.Response> memberCartsBefore = cartService.findByMemberId(testMember.getId());
         assertThat(memberCartsBefore).hasSize(1);
 
-        // When: 임의의 세션 ID로 세션 만료 시뮬레이션
-        String randomSessionId = UUID.randomUUID().toString();
-        int deletedCount = cartService.deleteGuestCartBySessionId(randomSessionId);
+        // When: 임의의 guestId로 비회원 장바구니 정리
+        String randomGuestId = UUID.randomUUID().toString();
+        cartService.deleteGuestCart(randomGuestId);
 
         // Then: 회원 장바구니는 영향 없음
-        assertThat(deletedCount).isEqualTo(0);
         List<CartDto.Response> memberCartsAfter = cartService.findByMemberId(testMember.getId());
         assertThat(memberCartsAfter).hasSize(1);
         assertThat(memberCartsAfter.get(0).getCount()).isEqualTo(3);

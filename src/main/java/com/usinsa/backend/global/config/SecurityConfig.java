@@ -35,14 +35,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
 
-            // 세션 정책: NEVER — 기존 세션은 사용하되 새로 생성하지 않음
-            // 비회원 장바구니는 요청 측에서 X-Session-Id 헤더로 직접 전달하는 방식으로 분리
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.NEVER))
 
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/zinc-debug/**").permitAll()
                 // 인증 API

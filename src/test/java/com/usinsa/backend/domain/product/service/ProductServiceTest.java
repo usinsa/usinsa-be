@@ -2,12 +2,16 @@ package com.usinsa.backend.domain.product.service;
 
 import com.usinsa.backend.domain.category.entity.Category;
 import com.usinsa.backend.domain.category.repository.CategoryRepository;
+import com.usinsa.backend.domain.product.cache.ProductLikeCacheService;
 import com.usinsa.backend.domain.product.dto.ProductDto;
 import com.usinsa.backend.domain.product.dto.ProductOptionDto;
 import com.usinsa.backend.domain.product.entity.Product;
 import com.usinsa.backend.domain.product.entity.ProductOption;
+import com.usinsa.backend.domain.product.repository.ProductLikeRepository;
 import com.usinsa.backend.domain.product.repository.ProductOptionRepository;
 import com.usinsa.backend.domain.product.repository.ProductRepository;
+import com.usinsa.backend.global.exception.CustomException;
+import com.usinsa.backend.global.exception.ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -45,6 +49,12 @@ class ProductServiceTest {
 
     @Mock
     private ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private ProductLikeRepository productLikeRepository;
+
+    @Mock
+    private ProductLikeCacheService likeCacheService;
 
     private Category testCategory;
     private Product testProduct;
@@ -85,6 +95,7 @@ class ProductServiceTest {
             // given
             given(categoryRepository.findById(anyLong())).willReturn(Optional.of(testCategory));
             given(productRepository.save(any(Product.class))).willReturn(testProduct);
+            given(likeCacheService.getLikeCount(anyLong())).willReturn(100);
 
             // when
             ProductDto.Response result = productService.create(createReq);
@@ -105,8 +116,8 @@ class ProductServiceTest {
 
             // when & then
             assertThatThrownBy(() -> productService.create(createReq))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("카테고리를 찾을 수 없습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.CATEGORY_NOT_FOUND.getMessage());
         }
     }
 
@@ -120,6 +131,7 @@ class ProductServiceTest {
             // given
             given(productRepository.findWithCategoryAndOptionsById(anyLong()))
                     .willReturn(Optional.of(testProduct));
+            given(likeCacheService.getLikeCount(anyLong())).willReturn(100);
 
             // when
             ProductDto.Response result = productService.findById(1L);
@@ -139,8 +151,8 @@ class ProductServiceTest {
 
             // when & then
             assertThatThrownBy(() -> productService.findById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("상품을 찾을 수 없습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.PRODUCT_NOT_FOUND.getMessage());
         }
 
         @Test
@@ -158,6 +170,7 @@ class ProductServiceTest {
                     .build();
 
             given(productRepository.findAll()).willReturn(Arrays.asList(testProduct, product2));
+            given(likeCacheService.getLikeCount(anyLong())).willReturn(100);
 
             // when
             List<ProductDto.Response> results = productService.findAll();
@@ -184,6 +197,7 @@ class ProductServiceTest {
                     .build();
 
             given(productRepository.findById(anyLong())).willReturn(Optional.of(testProduct));
+            given(likeCacheService.getLikeCount(anyLong())).willReturn(100);
 
             // when
             ProductDto.Response result = productService.update(1L, updateReq);
@@ -201,8 +215,8 @@ class ProductServiceTest {
 
             // when & then
             assertThatThrownBy(() -> productService.update(999L, createReq))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("상품을 찾을 수 없습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.PRODUCT_NOT_FOUND.getMessage());
         }
     }
 
@@ -223,6 +237,7 @@ class ProductServiceTest {
             // then
             verify(productRepository).delete(testProduct);
             verify(eventPublisher).publishEvent(any(Object.class));
+            verify(likeCacheService).invalidateProductCache(1L);
         }
 
         @Test
@@ -233,8 +248,8 @@ class ProductServiceTest {
 
             // when & then
             assertThatThrownBy(() -> productService.delete(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("상품을 찾을 수 없습니다.");
+                    .isInstanceOf(CustomException.class)
+                    .hasMessage(ErrorCode.PRODUCT_NOT_FOUND.getMessage());
         }
     }
 
