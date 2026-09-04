@@ -7,6 +7,9 @@ kakaopay:
   secretKey: ${KAKAOPAY_SECRET_KEY}
   cid: ${KAKAOPAY_CID}
 
+gemini:
+  api-key: ${GEMINI_API_KEY}
+
 oauth:
   callback-base-url: https://www.usinsa.store/oauth/callback
 
