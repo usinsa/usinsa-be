@@ -33,6 +33,14 @@ public class ProductEmbeddingIndexer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        try {
+            backfill();
+        } catch (Exception e) {
+            log.warn("상품 임베딩 백필을 건너뛰기 (pgvector/product_embedding 미사용 환경일 경우): {}", e.getMessage());
+        }
+    }
+
+    private void backfill() {
         List<Product> products = productRepository.findAll();
         long embeddedCount = productEmbeddingRepository.count();
 
