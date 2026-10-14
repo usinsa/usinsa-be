@@ -9,8 +9,10 @@ import com.usinsa.backend.domain.search.port.ProductVectorSearchPort;
 import com.usinsa.backend.domain.search.result.dto.ProductSearchDto;
 import com.usinsa.backend.domain.search.vector.dto.VectorSearchResultDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +20,8 @@ import java.util.Map;
 /**
  * ProductSearchPort(키워드) + ProductVectorSearchPort(벡터) 결과를
  * RRF(Reciprocal Rank Fusion)로 병합한다.
- * 두 Port는 서로를 모르며, 병합 책임은 오직 이 서비스에만 있다 (1단계 원칙).
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HybridSearchService {
@@ -33,9 +35,7 @@ public class HybridSearchService {
 
     public List<RankedProductDto> search(String keyword, int topK) {
         List<ProductSearchDto> keywordResults = productSearchPort.search(keyword);
-
-        float[] queryVector = embeddingClient.embedQuery(keyword);
-        List<VectorSearchResultDto> vectorResults = productVectorSearchPort.search(queryVector, topK);
+        List<VectorSearchResultDto> vectorResults = searchVectorSafely(keyword, topK);
 
         Map<Long, Double> rrfScores = new HashMap<>();
         Map<Long, ProductSearchDto> keywordInfoById = new HashMap<>();
@@ -62,6 +62,16 @@ public class HybridSearchService {
 
     private double rrfScore(int rank) {
         return 1.0 / (RRF_K + rank);
+    }
+
+ private List<VectorSearchResultDto> searchVectorSafely(String keyword, int topK) {
+        try {
+            float[] queryVector = embeddingClient.embedQuery(keyword);
+            return productVectorSearchPort.search(queryVector, topK);
+        } catch (Exception e) {
+            log.warn("벡터 검색을 건너뜁니다 (pgvector 미사용 환경일 수 있음): {}", e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     /**

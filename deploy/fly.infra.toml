@@ -7,9 +7,13 @@ primary_region = "nrt"
 [[services]]
   internal_port = 4080
   protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
 
   [[services.ports]]
     port = 4080
+[[restart]]
+  policy = "never"
 
 [[mounts]]
   source = "infra_data"
